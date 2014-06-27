@@ -1,0 +1,2 @@
+app = None
+queue = None
