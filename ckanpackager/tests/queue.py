@@ -1,17 +1,15 @@
-"""Test the TaskQueue class
-
-Because the class spawns processes and threads, the tests involves waiting. How long does it take until a separate
- process gets to run and pick an item from the queue? How long  does it take for a process to
-terminate? Well, we'll assume 1 second is plenty of time for both - but that's not guaranteed. So in theory these
-tests could fail even though the code works.
-"""
+"""Test the TaskQueue class"""
 import logging
 import os
 import multiprocessing
 import Queue
 import time
-from ckanpackager.lib.queue import TaskQueue
-from nose.tools import assert_equals, assert_not_equals, assert_in, assert_not_in, assert_true, assert_raises
+from ckanpackager.lib.queue import TaskQueue, QueueClosed
+from nose.tools import assert_equals, assert_in, assert_not_in, assert_raises
+
+# Defines the delay, in second, we wait for certain process related operations (eg. starting a new process, closing a
+# process, etc.) to take. 1 second should be enough on any system.
+PROCESS_OP_TIME = 1.0
 
 
 class DummyTask:
@@ -67,8 +65,6 @@ class TestQueue:
         """Terminate the task queue"""
         if self._task_queue:
             self._task_queue.terminate(0)
-            time.sleep(1)
-            assert_equals(self._task_queue.is_terminated(), True)
             self._task_queue = None
         self._empty_queue(self._input_queue)
         self._empty_queue(self._output_queue)
@@ -77,32 +73,25 @@ class TestQueue:
 
     def test_run(self):
         """Ensure the queue takes a task and runs it"""
-        self._task_queue = TaskQueue(1, 0)
+        self._task_queue = TaskQueue(1)
         assert_equals(self._empty_queue(self._pid_queue), 0)
         self._task_queue.add(DummyTask(self._input_queue, self._output_queue, self._pid_queue))
-        time.sleep(1)
+        time.sleep(PROCESS_OP_TIME)
         assert_equals(self._empty_queue(self._pid_queue), 1)
 
     def test_terminate(self):
-        """Ensures that terminate works"""
-        self._task_queue = TaskQueue(1, 0)
+        """Test that once terminated we cannot add tasks onto a queue"""
+        self._task_queue = TaskQueue(1)
         self._task_queue.terminate(0)
-
-        # We rely on is_terminated, so the test will only work if is_terminated works. The only other option would be
-        # to access the queue's thread/process pool.
-        time.sleep(1)
-        assert_true(self._task_queue.is_terminated())
+        assert_raises(QueueClosed, self._task_queue.add, (None,))
 
     def test_terminate_timeout(self):
         """Ensure terminates gives time for the tasks to finish"""
-        self._task_queue = TaskQueue(1, 0)
+        self._task_queue = TaskQueue(1)
         self._task_queue.add(DummyTask(self._input_queue, self._output_queue, self._pid_queue))
         assert_equals(self._empty_queue(self._output_queue), 0)
         self._input_queue.put(3)
-        time.sleep(1)
-        self._task_queue.terminate(6, False)
-        time.sleep(1)
-        assert_true(self._task_queue.is_terminated())
+        self._task_queue.terminate(6)
         assert_equals(self._empty_queue(self._output_queue), 1)
 
     def test_terminate_interupt(self):
@@ -110,15 +99,14 @@ class TestQueue:
         self._task_queue = TaskQueue(1, 0)
         self._task_queue.add(DummyTask(self._input_queue, self._output_queue, self._pid_queue))
         assert_equals(self._empty_queue(self._output_queue), 0)
-        self._input_queue.put(10)
-        self._task_queue.terminate(0.5)
-        time.sleep(3)
-        assert_true(self._task_queue.is_terminated())
+        self._input_queue.put(3)
+        self._task_queue.terminate(0)
+        time.sleep(3 + PROCESS_OP_TIME)
         assert_equals(self._empty_queue(self._output_queue), 0)
 
     def test_number_of_workers(self):
         """Ensure the queue spawns required number of distinct sub-processes"""
-        self._task_queue = TaskQueue(5, 0)
+        self._task_queue = TaskQueue(5)
         for i in range(9):
             self._task_queue.add(DummyTask(self._input_queue, self._output_queue, self._pid_queue))
         pids = [os.getpid()]
