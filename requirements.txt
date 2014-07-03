@@ -1,3 +1,5 @@
 flask
+ijson
+unicodecsv
 nose
 mock

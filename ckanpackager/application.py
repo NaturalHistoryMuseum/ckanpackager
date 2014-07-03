@@ -1,5 +1,6 @@
 """Ckanpackager application
 """
+import os
 import sys
 import logging
 
@@ -27,6 +28,12 @@ app.logger.addHandler(MultiprocessingLogHandler())
 # Read configuration
 app.config.from_object('ckanpackager.config_defaults')
 app.config.from_envvar('CKANPACKAGER_CONFIG')
+
+# Create folders if required
+if not os.path.exists(app.config['TEMP_DIRECTORY']):
+    os.makedirs(app.config['TEMP_DIRECTORY'])
+if not os.path.exists(app.config['STORE_DIRECTORY']):
+    os.makedirs(app.config['STORE_DIRECTORY'])
 
 # Setup our worker queue, and ensure it's available to requests. Note that requests are served by a single thread
 # on a single process - so sharing the object is not a problem. The packaging itself happens in a separate

@@ -22,12 +22,17 @@ def status():
 @main.route('/package', methods=['POST'])
 def package():
     logic.authorize_request(request.form)
-    g.queue.add(PackageTask(request.form))
+    task = PackageTask(request.form, current_app.config)
+    g.queue.add(task)
+    return jsonify(
+        status='success'
+    )
 
 @main.route('/package_test', methods=['GET'])
 def package_test():
     logic.authorize_request(request.args)
-    g.queue.add(PackageTask(request.args))
+    task = PackageTask(request.args, current_app.config)
+    g.queue.add(task)
     return jsonify(
         status='success'
     )
