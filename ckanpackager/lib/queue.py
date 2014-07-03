@@ -1,7 +1,7 @@
 import os
 import multiprocessing
 import time
-
+from traceback import format_exc
 
 class QueueClosed(Exception):
     """Exception raised when adding tasks on a queue that was closed"""
@@ -11,9 +11,18 @@ class QueueClosed(Exception):
 def _worker(task):
     """Function invoked to run a task"""
     logger = multiprocessing.get_logger()
-    logger.info("Worker {} processing task {}".format(os.getpid(), task))
-    task.run()
-    logger.info("Worker {} done with task {}".format(os.getpid(), task))
+    id = os.getpid()
+    try:
+        desc = str(task)
+    except Exception as e:
+        logger.error("Worker {} failed to get task description. {}".format(id, format_exc()))
+        desc = '(unknown)'
+    logger.info("Worker {} processing task {}".format(id, desc))
+    try:
+        task.run()
+    except Exception as e:
+        logger.error("Worker {} failed task {}. {}".format(id, desc, format_exc()))
+    logger.info("Worker {} done with task {}".format(id, desc, e))
     return True
 
 
