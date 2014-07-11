@@ -1,6 +1,7 @@
 import os
 import hashlib
 import multiprocessing
+import json
 import ijson
 import smtplib
 from email.mime.text import MIMEText
@@ -42,8 +43,7 @@ class PackageTask():
 
         Optional parameters are:
         - key: CKAN API key to make the request as;
-        - filters: Filters to apply on resource. The format depends on CKAN's version; this parameter is transmitted as
-                   is;
+        - filters: Filters to apply on resource, as JSON encoded dictionary of field name to value;
         - q: Full text search to perform on resource;
         - plain: Treat as plain text query;
         - language: Language of the full text query;
@@ -73,6 +73,12 @@ class PackageTask():
         self.request_params = {}
         for item in ['resource_id', 'filters', 'q', 'plain', 'language', 'limit', 'offset', 'fields', 'sort']:
             self.request_params[item] = params.get(item, None)
+        if self.request_params['filters']:
+            print self.request_params['filters']
+            try:
+                self.request_params['filters'] = json.loads(self.request_params['filters'])
+            except (ValueError, TypeError):
+                raise BadRequestError("filters should be a JSON encoded dictionary")
         self.time = str(datetime.now())
         self.config = config
 

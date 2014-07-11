@@ -34,6 +34,9 @@ PAGE_SIZE = 5000
 # name. You do not need to put quotes around those.
 ZIP_COMMAND = "/usr/bin/zip -j {output} {input}"
 
+# Message returned when successful
+SUCCESS_MESSAGE = "The resource will be emailed to you shortly. This make take a little longer if our servers are busy, so please be patient!"
+
 # Email subject line. Available placeholders:
 # {resource_id}: The resource id,
 # {zip_file_name}: The file name,

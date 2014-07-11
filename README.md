@@ -6,13 +6,11 @@ Overview
 
 A stand-alone service that can be instructed to fetch data on a [CKAN](http://ckan.org) site using the datastore API, pack the data in a ZIP file and email the link to a given address.
 
-**This is work in progress and is not currently functional**
-
-This is useful for allowing people to download very large datasets (tested on a dataset of 3,000,000 rows), and there is a corresponding CKAN extension, [ckanext-ckanpackager](http://github.com/NaturalHistoryMuseum) ( **currently not implemented** ), which replaces the download button on resources to use the ckanpackager.
+This is useful for allowing people to download very large datasets (tested on a dataset of 3,000,000 rows), and there is a corresponding CKAN extension, [ckanext-ckanpackager](http://github.com/NaturalHistoryMuseum/ckanext-ckanpackager), to provide an alternative download button on resources.
 
 Features:
 - Can apply filters and full text queries to the dataset;
-- Configurable number of workers and a queuing system ensures users can control the resources used;
+- Configurable number of workers and a queuing system ensures administrators can control the resources used;
 - Data is processed as it is streamed from CKAN, so the memory usage is kept low;
 
 Note: ckanpackager streams the info and drops the connection as soon as it has the data it wants. This means your CKAN server might show broken pipe errors. That's fine.
@@ -25,11 +23,72 @@ The application is under development and does yet contain a WSGI wrapper. Run ma
 
 `CKANPACKAGER_CONFIG=[path to config file] python ckanpackager/application.py`
 
-Once started you can make HTTP request on the host/port with the following URLs:
+The service provides two HTTP access points:
 
-- _/status_ to obtain the status as a json object. Required parameters: `secret`;
-- _/package_ to get a package created and a link emailed. Required POST parameters: `secret`, `resource_id` and `email`. Optional POST parameters: `filters`, `q`, `limit`, `offset`.
+### status
 
+This expects a POST request, and returns a JSON dictionary.
+
+Parameters:
+- `secret`: The shared secret
+
+JSON result fields:
+- `worker_count`: Number of workers;
+- `queue_length`: Number of items in the queue (items that have not been completed);
+- `processed_requests`: Number of requests that were processed.
+
+Example usage (Python):
+```python
+  import urllib2
+  import json
+  
+  request = urllib2.Request('http://ckanpackager.example.com/status')
+  response = urllib2.urlopen(request, urllib.quote(json.dumps({
+      'secret': '...'
+  })))
+  result = json.loads(response.read())
+  response.close()
+```
+
+### package
+
+This expects a POST request, and returns a JSON dictionary. If the request is successful, the task is queued up. When the tasks gets to run, it will fetch the given resource (with filters applied), pack it into a ZIP file and email the link to the given email address.
+
+Parameters:
+- `secret`: The shared secret (required);
+- `api_url`: The CKAN datastore_search API URL (required);
+- `resource_id`: The resource to package (required);
+- `email`: The email to send the resource to (required)l
+- `filters`: JSON encoded filter dictionary, as expected by datastore_search (optional, default is no filters);
+- `q`: Full text search (optional, default is no full text search);
+- `offset`: Offset to start the search at (optional, default is 0);
+- `limit`: Maximum number of items to fetch (optional, default is to fetch all entries);
+- `key`: CKAN API key (optional, default if to do anonymous request)
+      
+JSON result fields:      
+- `success`: True or False;
+- `msg`: If the query failed, may contain an error message. If the query was successful, contains a message that may be displayed to the end user (such as "please be patient!");
+
+Example usage (Python):
+```python
+  import urllib2
+  import json
+  
+  request = urllib2.Request('http://ckanpackager.example.com/status')
+  response = urllib2.urlopen(request, urllib.quote(json.dumps({
+      'secret': '...',
+      'api_url': 'http://ckan.example.com/api/action/datastore_search',
+      'resource_id': '...',
+      'email': 'recipient@example.com',
+      'filters': json.dumps({'somefield': 'somevalue'}),
+      'q': 'a search',
+      'offset': 1000,
+      'limit': 1000000,
+      'key' : '...'
+  })))
+  result = json.loads(response.read())
+  response.close()
+```
 
 Configuration
 -------------

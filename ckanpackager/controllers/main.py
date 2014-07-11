@@ -25,14 +25,6 @@ def package():
     task = PackageTask(request.form, current_app.config)
     g.queue.add(task)
     return jsonify(
-        status='success'
-    )
-
-@main.route('/package_test', methods=['GET'])
-def package_test():
-    logic.authorize_request(request.args)
-    task = PackageTask(request.args, current_app.config)
-    g.queue.add(task)
-    return jsonify(
-        status='success'
+        status='success',
+        message=current_app.config['SUCCESS_MESSAGE']
     )

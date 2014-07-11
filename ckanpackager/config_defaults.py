@@ -10,6 +10,7 @@ TEMP_DIRECTORY = "/tmp"
 CACHE_TIME = 60*60*24
 ZIP_COMMAND = "/usr/bin/zip {output} {input}"
 SMTP_HOST = "localhost"
+SUCCESS_MESSAGE = "The resource will be emailed to you shortly. This make take a little longer if our servers are busy, so please be patient!"
 EMAIL_SUBJECT = "Resource from {ckan_host}"
 EMAIL_FROM = "(nobody)"
 EMAIL_BODY = """Hello,
