@@ -17,7 +17,7 @@ WORKERS = 1
 REQUESTS_PER_WORKER = 1000
 
 # Directory where the zip files are stored
-STORE_DIRECTORY = "/tmp/ckanpackager"
+STORE_DIRECTORY = "/tmp/ckan/resources"
 
 # Temp Directory used when creating the files
 TEMP_DIRECTORY = "/tmp"
@@ -34,7 +34,7 @@ PAGE_SIZE = 5000
 # name. You do not need to put quotes around those.
 ZIP_COMMAND = "/usr/bin/zip -j {output} {input}"
 
-# Message returned when successful
+# Message sent back when returning success
 SUCCESS_MESSAGE = "The resource will be emailed to you shortly. This make take a little longer if our servers are busy, so please be patient!"
 
 # Email subject line. Available placeholders:
@@ -50,14 +50,14 @@ EMAIL_FROM = "(nobody)"
 EMAIL_BODY = """Hello,
 
 The link to the resource you requested on {ckan_host} is available at:
-http://10.11.12.13/ckanresources/{zip_file_name}
+http://www.example.com/resources/{zip_file_name}
 
 Best Wishes,
 The Data Portal Bot
 """
 
 # SMTP host:port
-SMTP_HOST = 'localhost'
+SMTP_HOST = 'smtp.example.com'
 
 # SMTP username (Optional, if required)
 #SMTP_LOGIN = ''

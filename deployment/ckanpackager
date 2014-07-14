@@ -1,0 +1,13 @@
+<VirtualHost 0.0.0.0:8765>
+
+    ServerName ckanpackager
+
+    WSGIScriptAlias / /etc/ckan/ckanpackager.wsgi
+    WSGIDaemonProcess ckanpackager processes=1 threads=1
+
+    WSGIProcessGroup ckanpackager 
+
+    ErrorLog /var/log/apache2/ckanpackager.error.log
+    CustomLog /var/log/apache2/ckanpackager.access.log combined
+
+</VirtualHost>

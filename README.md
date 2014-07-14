@@ -16,12 +16,21 @@ Features:
 Note: ckanpackager streams the info and drops the connection as soon as it has the data it wants. This means your CKAN server might show broken pipe errors. That's fine.
 
 
-Usage
------
+Deployment
+----------
 
-The application is under development and does yet contain a WSGI wrapper. Run manually by doing:
+If you want to test ckanpackager, you can run it manually by doing:
 
 `CKANPACKAGER_CONFIG=[path to config file] python ckanpackager/application.py`
+
+For production, you will want to use an Apache server with mod_wsgi enabled, and use the following files:
+
+- `deployment/ckanpackager`: An example Apache2 virtual host file. Typically goes under `/etc/apache2/sites-available`;
+- `deployment/ckanpackager.wsgi`: A WSGI wrapper for ckanpackager. If using the default virtual host example this would be placed in `/etc/ckan/ckanpackager.wsgi`;
+- `deployment/ckanpackager_settings.py`: An example configuration file (see below for options). If using the default wsgi wrapper, this would be placed in `/etc/ckan/ckanpackager_settings.py`
+
+Usage
+-----
 
 The service provides two HTTP access points:
 
