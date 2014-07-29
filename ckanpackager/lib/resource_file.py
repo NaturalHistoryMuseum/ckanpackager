@@ -1,10 +1,12 @@
 import os
+import re
 import time
 import shlex
 import hashlib
 import tempfile
 import unicodecsv
 import subprocess
+from urlparse import urlparse
 from contextlib import contextmanager
 
 
@@ -24,7 +26,7 @@ class ResourceFile():
         """
         self.request_params = request_params
         self.zip_file_name = None
-        self.csv_file_name = None
+        self.temp_file_name = None
         self.root = root
         self.cache_time = cache_time
 
@@ -45,6 +47,46 @@ class ResourceFile():
         return self.zip_file_name
 
     @contextmanager
+    def get_writer(self, work_directory):
+        """Yield a writer for the current request
+
+        Create a new temporary file for this request, and yield a writer object for it.
+        Once this has been called, get_file_name will return the name of the created file.
+
+        The writer is closed on exit. If the inner block raised an exception, then the file will be
+        deleted too. Otherwise it will be left in place.
+
+        @param work_directory: folder in which to create the file
+        """
+        suffix = None
+        prefix = None
+        if 'resource_url' in self.request_params:
+            url = urlparse(self.request_params['resource_url'])
+            parts = [p for p in url.path.split('/') if p]
+            if len(parts) > 0:
+                filename = parts.pop()
+                suffix = re.sub('^[^.]*', '', filename)
+                prefix = re.sub('\..*$', '', filename) + '-'
+        if suffix is None:
+            suffix = ''
+            prefix = self.request_params['resource_id'] + '-'
+
+        temp_file = tempfile.NamedTemporaryFile(
+            mode='wb',
+            suffix=suffix,
+            prefix=prefix,
+            dir=work_directory,
+            delete=False
+        )
+        self.temp_file_name = temp_file.name
+        try:
+            yield temp_file
+        except:
+            if not temp_file.closed:
+                temp_file.close()
+            raise
+
+    @contextmanager
     def get_csv_writer(self, work_directory):
         """Yield a CSV writer for the current request
 
@@ -53,7 +95,7 @@ class ResourceFile():
         created file.
 
         The CSV writer is closed on exit. If the inner block raised an exception, then the CSV file will be
-        delete too. Otherwise it will be left in place.
+        deleted too. Otherwise it will be left in place.
 
         @param work_directory: folder in which to create the file
         """
@@ -64,7 +106,7 @@ class ResourceFile():
             dir=work_directory,
             delete=False
         )
-        self.csv_file_name = csv_file.name
+        self.temp_file_name = csv_file.name
         try:
             output_stream = unicodecsv.writer(
                 csv_file,
@@ -94,7 +136,7 @@ class ResourceFile():
         cmd = shlex.split(zip_command)
         for i, v in enumerate(cmd):
             if v == '{input}':
-                cmd[i] = self.csv_file_name
+                cmd[i] = self.temp_file_name
             if v == '{output}':
                 cmd[i] = zip_file_name
         # FIXME: Should we implement a timeout?
@@ -105,8 +147,8 @@ class ResourceFile():
 
     def clean_work_files(self):
         """Clean up temp files"""
-        if self.csv_file_name and os.path.exists(self.csv_file_name):
-            os.remove(self.csv_file_name)
+        if self.temp_file_name and os.path.exists(self.temp_file_name):
+            os.remove(self.temp_file_name)
 
     def _get_cached_zip_file(self):
         """Find cached file for this resource

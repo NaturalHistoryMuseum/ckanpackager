@@ -1,7 +1,8 @@
 from flask import request, Blueprint, current_app, g
 from flask.json import jsonify
 from ckanpackager import logic
-from ckanpackager.lib.package_task import PackageTask
+from ckanpackager.tasks.datastore_package_task import DatastorePackageTask
+from ckanpackager.tasks.url_package_task import UrlPackageTask
 
 main = Blueprint('main', __name__)
 
@@ -18,11 +19,23 @@ def status():
     )
 
 
-# Job page
-@main.route('/package', methods=['POST'])
-def package():
+# Package datastore task
+@main.route('/package_datastore', methods=['POST'])
+def package_datastore():
     logic.authorize_request(request.form)
-    task = PackageTask(request.form, current_app.config)
+    task = DatastorePackageTask(request.form, current_app.config)
+    g.queue.add(task)
+    return jsonify(
+        status='success',
+        message=current_app.config['SUCCESS_MESSAGE']
+    )
+
+
+# Package url task
+@main.route('/package_url', methods=['POST'])
+def package_url():
+    logic.authorize_request(request.form)
+    task = UrlPackageTask(request.form, current_app.config)
     g.queue.add(task)
     return jsonify(
         status='success',
