@@ -35,10 +35,11 @@ class PackageTask():
         for (field, definition) in self.schema().items():
             if definition[0] and field not in params:
                 raise BadRequestError("Parameter {} is required".format(field))
-            if definition[1] is not None:
-                self.request_params[field] = definition[1](params.get(field))
-            else:
-                self.request_params[field] = params.get(field, None)
+            if field in params:
+                if definition[1] is not None:
+                    self.request_params[field] = definition[1](params.get(field, None))
+                else:
+                    self.request_params[field] = params.get(field, None)
 
     def schema(self):
         raise NotImplementedError

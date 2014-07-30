@@ -32,7 +32,9 @@ class CkanResource():
                       request parameters (see _merge_limits)
         @yield: file-like stream object
         """
-        (offset, limit) = self._merge_limits(self.request_params['offset'], self.request_params['limit'], offset, limit)
+        (offset, limit) = self._merge_limits(self.request_params.get('offset', None),
+                                             self.request_params.get('limit', None),
+                                             offset, limit)
         request_params = dict([(k, v) for (k, v) in self.request_params.items() if v is not None])
         request_params['offset'] = offset
         request_params['limit'] = limit
