@@ -167,5 +167,8 @@ class ResourceFile():
     def _base_name(self):
         """Return the base name for the ZIP file"""
         md5 = hashlib.md5()
-        md5.update(str(self.request_params))
+        cache_key_params = dict(self.request_params)
+        if 'email' in cache_key_params:
+            del cache_key_params['email']
+        md5.update(str(cache_key_params))
         return md5.hexdigest()
