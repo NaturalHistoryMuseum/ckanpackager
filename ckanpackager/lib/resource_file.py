@@ -1,13 +1,12 @@
 import os
-import re
 import time
 import shlex
+import shutil
 import hashlib
 import tempfile
 import unicodecsv
 import subprocess
 from urlparse import urlparse
-from contextlib import contextmanager
 
 
 class ArchiveError(Exception):
@@ -17,18 +16,22 @@ class ArchiveError(Exception):
 
 class ResourceFile():
     """Represents and builds a ZIP resource file from given request parameters"""
-    def __init__(self, request_params, root, cache_time):
+    def __init__(self, request_params, root, temp_dir, cache_time):
         """Create a new Resource File
 
         @param request_params: Dictionary of parameters defining the request
-        @param root: Directory in which ZIPped resource files are store
+        @param root: Directory in which ZIPped resource files are stored
+        @param temp_dir: Directory in which we can create temporary folder
+                         for generating the resource
         @param cache_time: Time (in second) for which a file is valid for the same request
         """
         self.request_params = request_params
-        self.zip_file_name = None
-        self.temp_file_name = None
+        self.temp_dir = temp_dir
         self.root = root
         self.cache_time = cache_time
+        self.working_folder = None
+        self.zip_file_name = None
+        self.writers = {}
 
     def zip_file_exists(self):
         """Check if the file already exists"""
@@ -46,86 +49,69 @@ class ResourceFile():
         """
         return self.zip_file_name
 
-    @contextmanager
-    def get_writer(self, work_directory):
-        """Yield a writer for the current request
+    def set_zip_file_name(self, zip_file_name):
+        """Force-set the zip file name.
 
-        Create a new temporary file for this request, and yield a writer object for it.
-        Once this has been called, get_file_name will return the name of the created file.
-
-        The writer is closed on exit. If the inner block raised an exception, then the file will be
-        deleted too. Otherwise it will be left in place.
-
-        @param work_directory: folder in which to create the file
+        This is mostly usefull for testing
         """
-        suffix = None
-        prefix = None
-        if 'resource_url' in self.request_params:
-            url = urlparse(self.request_params['resource_url'])
-            parts = [p for p in url.path.split('/') if p]
-            if len(parts) > 0:
-                filename = parts.pop()
-                suffix = re.sub('^[^.]*', '', filename)
-                prefix = re.sub('\..*$', '', filename) + '-'
-        if suffix is None:
-            suffix = ''
-            prefix = self.request_params['resource_id'] + '-'
+        self.zip_file_name = zip_file_name
 
-        temp_file = tempfile.NamedTemporaryFile(
-            mode='wb',
-            suffix=suffix,
-            prefix=prefix,
-            dir=work_directory,
-            delete=False
-        )
-        self.temp_file_name = temp_file.name
-        try:
-            yield temp_file
-        except:
-            if not temp_file.closed:
-                temp_file.close()
-            raise
+    def get_writer(self, name=None):
+        """Get a writer for the given file name in the resource.
 
-    @contextmanager
-    def get_csv_writer(self, work_directory):
-        """Yield a CSV writer for the current request
+        If name is not defined, this will:
+        - Use the base file name defined by the 'resource_url' request
+          parameter if present;
+        - Use the resource id if not.
 
-        Create a new CSV file for this request, and yield a CSV writer for it.
-        Once this has been called, get_file_name will return the name of the
-        created file.
+        Note that writers are automatically closed when clean_work_files is
+        called.
 
-        The CSV writer is closed on exit. If the inner block raised an exception, then the CSV file will be
-        deleted too. Otherwise it will be left in place.
-
-        @param work_directory: folder in which to create the file
+        @param name: Name of file to create, or None
         """
-        csv_file = tempfile.NamedTemporaryFile(
-            mode='wb',
-            suffix='.csv',
-            prefix=self.request_params['resource_id'] + '-',
-            dir=work_directory,
-            delete=False
+        self._create_working_folder()
+        if name is None:
+            if 'resource_url' in self.request_params:
+                url = urlparse(self.request_params['resource_url'])
+                parts = [p for p in url.path.split('/') if p]
+                if len(parts) > 0:
+                    name = parts.pop()
+            if name is None:
+                name = self.request_params['resource_id']
+        if name not in self.writers:
+            self.writers[name] = open(os.path.join(self.working_folder, name), 'wb')
+        return self.writers[name]
+
+    def get_csv_writer(self, name=None):
+        """Get a CSV writer for the given file name in the resource.
+
+        If name is not defined, this will:
+        - Use the base file name defined by the 'resource_url' request
+          parameter if present;
+        - Use the resource id if not, with an added .csv extention
+
+        Note that writers are automatically closed when clean_work_files is
+        called.
+
+        @param name: Name of file to create, or None
+        """
+        return unicodecsv.writer(
+            self.get_writer(name),
+            encoding='utf-8',
+            delimiter=',',
+            quotechar='"',
+            lineterminator="\n"
         )
-        self.temp_file_name = csv_file.name
-        try:
-            output_stream = unicodecsv.writer(
-                csv_file,
-                encoding='utf-8',
-                delimiter=',',
-                quotechar='"',
-                lineterminator="\n"
-            )
-            yield output_stream
-        except:
-            if not csv_file.closed:
-                csv_file.close()
-            raise
 
     def create_zip(self, zip_command):
-        """Create the ZIP file from the resource file created using get_csv_writer
+        """Create the ZIP file from the files added to this resource
 
         @param zip_command: Shell ZIP command. {input} and {output} are replaced with the relevant file names
         """
+        # Ensure we flush all the writers
+        for w in self.writers:
+            if not self.writers[w].closed:
+                self.writers[w].flush()
         #FIXME the task should be given a unique worker id rather than rely on this
         worker_id = os.getpid()
         zip_file_name = "{base}-{pid}-{time}.zip".format(
@@ -133,22 +119,37 @@ class ResourceFile():
             pid=worker_id,
             time=int(time.time())
         )
-        cmd = shlex.split(zip_command)
-        for i, v in enumerate(cmd):
-            if v == '{input}':
-                cmd[i] = self.temp_file_name
-            if v == '{output}':
-                cmd[i] = zip_file_name
-        # FIXME: Should we implement a timeout?
-        ret_code = subprocess.Popen(cmd).wait()
-        if ret_code != 0:
-            raise ArchiveError("Failed to create ZIP archive")
+        for resource_file in os.listdir(self.working_folder):
+            cmd = shlex.split(zip_command)
+            for i, v in enumerate(cmd):
+                if v == '{input}':
+                    cmd[i] = os.path.join(self.working_folder, resource_file)
+                if v == '{output}':
+                    cmd[i] = zip_file_name
+            # FIXME: Should we implement a timeout?
+            ret_code = subprocess.Popen(cmd).wait()
+            if ret_code != 0:
+                raise ArchiveError("Failed to create ZIP archive")
         self.zip_file_name = zip_file_name
 
     def clean_work_files(self):
         """Clean up temp files"""
-        if self.temp_file_name and os.path.exists(self.temp_file_name):
-            os.remove(self.temp_file_name)
+        # Ensure all writers are closed
+        for w in self.writers:
+            if not self.writers[w].closed:
+                self.writers[w].close()
+        self.writers = []
+        # Remove the temp working folder
+        if self.working_folder and os.path.exists(self.working_folder):
+            shutil.rmtree(self.working_folder, True)
+        self.working_folder = None
+
+    def _create_working_folder(self):
+        """Creates a temporary working folder"""
+        if self.working_folder is None:
+            self.working_folder = tempfile.mkdtemp(
+                dir=self.temp_dir
+            )
 
     def _get_cached_zip_file(self):
         """Find cached file for this resource

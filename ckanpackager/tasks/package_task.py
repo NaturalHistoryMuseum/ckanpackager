@@ -8,7 +8,7 @@ from ckanpackager.lib.utils import BadRequestError
 from ckanpackager.lib.resource_file import ResourceFile
 
 
-class PackageTask():
+class PackageTask(object):
     """Base class for DatastorePackageTask and UrlPackageTask
 
     Note that __init__ is run in the main thread, under flask, while 'run' and 'str' are typically
@@ -32,7 +32,7 @@ class PackageTask():
             schema['email'] = (True, None)
         if 'resource_id' not in schema:
             schema['resource_id'] = (True, None)
-        for (field, definition) in self.schema().items():
+        for (field, definition) in schema.items():
             if definition[0] and field not in params:
                 raise BadRequestError("Parameter {} is required".format(field))
             if field in params:
@@ -56,8 +56,14 @@ class PackageTask():
         Note that this is run in a separate process - we shouldn't attempt to use flask api from here.
         """
         logger = multiprocessing.get_logger()
+        logger.info("Task {} parameters: {}".format(self, str(self.request_params)))
         # Get/create the file
-        resource = ResourceFile(self.request_params, self.config['STORE_DIRECTORY'], self.config['CACHE_TIME'])
+        resource = ResourceFile(
+            self.request_params,
+            self.config['STORE_DIRECTORY'],
+            self.config['TEMP_DIRECTORY'],
+            self.config['CACHE_TIME']
+        )
         if not resource.zip_file_exists():
             self.create_zip(resource)
         else:
@@ -75,7 +81,7 @@ class PackageTask():
         msg['Subject'] = self.config['EMAIL_SUBJECT'].format(**place_holders)
         msg['From'] = from_addr
         msg['To'] = self.request_params['email']
-        server = smtplib.SMTP(self.config['SMTP_HOST'])
+        server = smtplib.SMTP(self.config['SMTP_HOST'], self.config['SMTP_PORT'])
         try:
             if 'SMTP_LOGIN' in self.config:
                 server.login(self.config['SMTP_LOGIN'], self.config['SMTP_PASSWORD'])

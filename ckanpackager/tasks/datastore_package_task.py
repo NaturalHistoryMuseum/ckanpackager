@@ -3,6 +3,7 @@ import json
 import ijson
 from urlparse import urlparse
 from ckanpackager.lib.ckan_resource import CkanResource
+from ckanpackager.lib.resource_file import ResourceFile
 from ckanpackager.tasks.package_task import PackageTask
 
 
@@ -46,54 +47,72 @@ class DatastorePackageTask(PackageTask):
         ckan_resource = CkanResource(self.request_params['api_url'], self.request_params.get('key', None), ckan_params)
         try:
             logger = multiprocessing.get_logger()
-            # Generate the CSV file
-            with resource.get_csv_writer(self.config['TEMP_DIRECTORY']) as output_stream:
-                # Get the headers first. This is needed as we must have them before the data to ensure we can
-                # stream the output.
-                logger.info("Task {} fetching field list".format(self))
-                with ckan_resource.get_stream(0, 0) as input_stream:
-                    fields = self._save_fields(input_stream, output_stream)
-                if not fields:
-                    raise CkanFailure("CKan query failed")
-                # Now get the records, page by page
-                start = 0
-                saved = -1
-                while saved == self.config['PAGE_SIZE'] or saved < 0:
-                    logger.info("Task {} processing page ({},{})".format(self, start, self.config['PAGE_SIZE']))
-                    with ckan_resource.get_stream(start, self.config['PAGE_SIZE']) as input_stream:
-                        saved = self._save_records(input_stream, output_stream, fields)
-                    start += self.config['PAGE_SIZE']
+            # Read the datastore fields, and generate the package structure.
+            logger.info("Task {} fetching field list".format(self))
+            with ckan_resource.get_stream(0, 0) as input_stream:
+                fields = self._stream_headers(input_stream, resource)
+                #FIXME: Test for failure
+            # Get the records, page by page
+            start = 0
+            saved = -1
+            while saved == self.config['PAGE_SIZE'] or saved < 0:
+                logger.info("Task {} processing page ({},{})".format(self, start, self.config['PAGE_SIZE']))
+                with ckan_resource.get_stream(start, self.config['PAGE_SIZE']) as input_stream:
+                    saved = self._stream_records(input_stream, fields, resource)
+                start += self.config['PAGE_SIZE']
+            # Finalize the resource
+            self._finalize_resource(fields, resource)
             # Zip the file
             resource.create_zip(self.config['ZIP_COMMAND'])
         finally:
             resource.clean_work_files()
 
-    def _save_fields(self, input_stream, output_stream):
-        """Save the list of fields to the output stream.
+    def _stream_headers(self, input_stream, resource):
+        """Stream the list of fields and save the headers in the resource.
 
         @param input_stream: file-like object representing the input stream
-        @param output_stream: CSV Writer object we send the output to
-        @return: The list of fields defined
+        @param resource: A resource file
+        @type resource: ResourceFile
+        @returns: List (or other structure) representing the fields saved to
+                  the headers, to allow _stream_records to save rows in a
+                  matching format.
         """
         fields = []
         for field_id in ijson.items(input_stream, 'result.fields.item.id'):
             fields.append(field_id)
-        output_stream.writerow(fields)
+        w = resource.get_csv_writer('resource.csv')
+        w.writerow(fields)
         return fields
 
-    def _save_records(self, input_stream, output_stream, fields):
-        """Save the records to the output stream
+    def _stream_records(self, input_stream, fields, resource):
+        """Stream the records from the input stream to the resource files
 
         @param input_stream: file-like object representing the input stream
-        @param output_stream: CSV writer object we send the output to
-        @return: Number of rows saved
+        @param fields: List (or other structure) representing the fields
+                       as returned by _stream_headers
+        @param resource: Resource file
+        @type resource: ResourceFile
+        @returns: Number of rows saved
         """
         saved = 0
+        w = resource.get_csv_writer('resource.csv')
         for json_row in ijson.items(input_stream, 'result.records.item'):
             row = []
             for field_id in fields:
                 row.append(json_row.get(field_id, None))
-
-            output_stream.writerow(row)
+            w.writerow(row)
             saved += 1
         return saved
+
+    def _finalize_resource(self, fields, resource):
+        """Finalize the resource before ZIPing it.
+
+        This implementation does nothing - this is available as a hook for
+        sub-classes who wish to add other files in the .zip file
+
+        @param fields: List (or other structure) representing the fields
+                       as returned by _stream_headers
+        @param resource: The resource we are creating
+        @type resource: ResourceFile
+        """
+        pass

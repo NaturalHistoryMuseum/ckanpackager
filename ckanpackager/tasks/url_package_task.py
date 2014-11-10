@@ -27,10 +27,10 @@ class UrlPackageTask(PackageTask):
         """
         logger = multiprocessing.get_logger()
         try:
-            with resource.get_writer(self.config['TEMP_DIRECTORY']) as output_stream:
-                input_stream = urllib2.urlopen(self.request_params['resource_url'])
-                logger.info("Task {} fetching and saving file.".format(self))
-                shutil.copyfileobj(input_stream, output_stream)
-                resource.create_zip(self.config['ZIP_COMMAND'])
+            output_stream = resource.get_writer()
+            input_stream = urllib2.urlopen(self.request_params['resource_url'])
+            logger.info("Task {} fetching and saving file.".format(self))
+            shutil.copyfileobj(input_stream, output_stream)
+            resource.create_zip(self.config['ZIP_COMMAND'])
         finally:
             resource.clean_work_files()
