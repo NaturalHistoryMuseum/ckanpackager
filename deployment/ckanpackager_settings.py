@@ -56,11 +56,31 @@ Best Wishes,
 The Data Portal Bot
 """
 
-# SMTP host:port
+# SMTP host
 SMTP_HOST = 'smtp.example.com'
+
+# SMTP port
+SMTP_PORT = 25
 
 # SMTP username (Optional, if required)
 #SMTP_LOGIN = ''
 
 # SMTP password (Optional, if required)
 #SMTP_PASSWORD = ''
+
+#
+# Following configuration options are for the generation of DarwinCore Archives
+#
+
+# Path to the Darwin Core Archive extensions. The first one listed will be the
+# core extension (as downloaded from http://rs.gbif.org/core/dwc_occurrence.xml),
+# followed by additional extensions (as obtained from http://rs.gbif.org/extension/)
+DWC_EXTENSION_PATHS = ['/etc/ckan/gbif_dwca_extensions/core/dwc_occurrence.xml']
+
+# Name of the dynamic term in the darwin core. This is used to store all
+# name/value pairs that do not match into an existing Darwin Core field
+DWC_DYNAMIC_TERM = 'dynamicProperties'
+
+# The id field (from the list of fields received by the datastore) to use as
+# common identifier across Darwin Core Archive extensions.
+DWC_ID_FIELD = '_id'

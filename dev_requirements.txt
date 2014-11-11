@@ -1,0 +1,7 @@
+flask
+ijson
+unicodecsv
+lxml
+nose
+mock
+httpretty

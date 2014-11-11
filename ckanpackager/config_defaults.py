@@ -10,6 +10,7 @@ TEMP_DIRECTORY = "/tmp"
 CACHE_TIME = 60*60*24
 ZIP_COMMAND = "/usr/bin/zip {output} {input}"
 SMTP_HOST = "localhost"
+SMTP_PORT = 25
 SUCCESS_MESSAGE = "The resource will be emailed to you shortly. This make take a little longer if our servers are busy, so please be patient!"
 EMAIL_SUBJECT = "Resource from {ckan_host}"
 EMAIL_FROM = "(nobody)"
@@ -21,3 +22,6 @@ http://{ckan_host}/{zip_file_name}
 Best Wishes,
 The Data Portal Bot
 """
+DWC_EXTENSION_PATH = ['/etc/ckan/gbif_dwca_extensions/core/dwc_occurrence.xml']
+DWC_DYNAMIC_TERM = 'dynamicProperties'
+DWC_ID_FIELD = '_id'

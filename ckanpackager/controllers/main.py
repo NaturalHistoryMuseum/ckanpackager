@@ -2,6 +2,7 @@ from flask import request, Blueprint, current_app, g
 from flask.json import jsonify
 from ckanpackager import logic
 from ckanpackager.tasks.datastore_package_task import DatastorePackageTask
+from ckanpackager.tasks.dwc_archive_package_task import DwcArchivePackageTask
 from ckanpackager.tasks.url_package_task import UrlPackageTask
 
 main = Blueprint('main', __name__)
@@ -24,6 +25,18 @@ def status():
 def package_datastore():
     logic.authorize_request(request.form)
     task = DatastorePackageTask(request.form, current_app.config)
+    g.queue.add(task)
+    return jsonify(
+        status='success',
+        message=current_app.config['SUCCESS_MESSAGE']
+    )
+
+
+# Package dwc archive task
+@main.route('/package_dwc_archive', methods=['POST'])
+def package_dwc_archive():
+    logic.authorize_request(request.form)
+    task = DwcArchivePackageTask(request.form, current_app.config)
     g.queue.add(task)
     return jsonify(
         status='success',

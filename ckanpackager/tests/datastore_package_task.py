@@ -1,11 +1,6 @@
 """Test the DatastorePackageClass class"""
 
-import os
 import json
-import tempfile
-import shutil
-import StringIO
-import mock
 import httpretty
 import urllib
 from nose.tools import assert_raises, assert_equals, assert_true

@@ -4,12 +4,13 @@ ckanpackager
 Overview
 --------
 
-A stand-alone service that can be instructed to fetch data on a [CKAN](http://ckan.org) site using the datastore API, pack the data in a ZIP file and email the link to a given address.
+A stand-alone service that can be instructed to fetch data on a [CKAN](http://ckan.org) site (either a file or data fetched using the datastore API), pack the data in a ZIP file and email the link to a given address.
 
 This is useful for allowing people to download very large datasets (tested on a dataset of 3,000,000 rows), and there is a corresponding CKAN extension, [ckanext-ckanpackager](http://github.com/NaturalHistoryMuseum/ckanext-ckanpackager), to provide an alternative download button on resources.
 
 Features:
-- Can apply filters and full text queries to the dataset;
+- Works for file resources as well resources uploaded to the datastore;
+- Can apply filters and full text queries when fetching from the datastore;
 - Configurable number of workers and a queuing system ensures administrators can control the resources used;
 - Data is processed as it is streamed from CKAN, so the memory usage is kept low;
 
@@ -34,9 +35,9 @@ Usage
 
 The service provides two HTTP access points:
 
-### status
+### /
 
-This expects a POST request, and returns a JSON dictionary.
+Return the current status of the packager service. This expects a POST request, and returns a JSON dictionary.
 
 Parameters:
 - `secret`: The shared secret
@@ -59,7 +60,7 @@ Example usage (Python):
   response.close()
 ```
 
-### package
+### package_datastore
 
 This expects a POST request, and returns a JSON dictionary. If the request is successful, the task is queued up. When the tasks gets to run, it will fetch the given resource (with filters applied), pack it into a ZIP file and email the link to the given email address.
 
@@ -83,7 +84,7 @@ Example usage (Python):
   import urllib2
   import json
   
-  request = urllib2.Request('http://ckanpackager.example.com/status')
+  request = urllib2.Request('http://ckanpackager.example.com/package_datastore')
   response = urllib2.urlopen(request, urllib.quote(json.dumps({
       'secret': '...',
       'api_url': 'http://ckan.example.com/api/action/datastore_search',
@@ -93,6 +94,37 @@ Example usage (Python):
       'q': 'a search',
       'offset': 1000,
       'limit': 1000000,
+      'key' : '...'
+  })))
+  result = json.loads(response.read())
+  response.close()
+```
+
+### package_url
+This expects a POST request, and returns a JSON dictionary. If the request is successful, the task is queued up. When the tasks gets to run, it will fetch the given resource file, put it into a ZIP file and email the link to the given email address.
+
+Parameters:
+- `secret`: The shared secret (required);
+- `resource_id`: The resource to package (required);
+- `resource_url`: The URL at which the file can be found(required);
+- `email`: The email to send the resource to (required);
+- `key`: CKAN API key (optional, default if to do anonymous request)
+      
+JSON result fields:      
+- `success`: True or False;
+- `msg`: If the query failed, may contain an error message. If the query was successful, contains a message that may be displayed to the end user (such as "please be patient!");
+
+Example usage (Python):
+```python
+  import urllib2
+  import json
+  
+  request = urllib2.Request('http://ckanpackager.example.com/package_url')
+  response = urllib2.urlopen(request, urllib.quote(json.dumps({
+      'secret': '...',
+      'resource_id': '...',
+      'resource_url': 'http://ckan.example.com/resoure_file',
+      'email': 'recipient@example.com',
       'key' : '...'
   })))
   result = json.loads(response.read())
@@ -160,12 +192,38 @@ Best Wishes,
 The Data Portal Bot
 """
 
-# SMTP host:port
+# SMTP host
 SMTP_HOST = 'localhost'
+
+# SMTP port
+SMTP_PORT = 25
 
 # SMTP username (Optional, if required)
 #SMTP_LOGIN = ''
 
 # SMTP password (Optional, if required)
 #SMTP_PASSWORD = ''
+```
+
+Domain Specific packaging
+-------------------------
+The current version includes a domain specific backend, for packaging data as a [Darwin Core Archive](http://en.wikipedia.org/wiki/Darwin_Core_Archive). This will be moved into a separate extension in the future.
+
+This extension works like the `package_datastore` backend, but the URL is `package_dwc_archive`. It is expected that the fields returned from the datastore query are space formatted versions of Darwin Core fields (ie. 'Taxon resource ID' for 'taxonResourceID'). Fields that cannot be matched into a Darwin Core field are added as field/value pair in the dynamic properties term.
+
+Additional configuration options:
+
+```
+# Path to the Darwin Core Archive extensions. The first one listed will be the
+# core extension (as downloaded from http://rs.gbif.org/core/dwc_occurrence.xml),
+# followed by additional extensions (as obtained from http://rs.gbif.org/extension/)
+DWC_EXTENSION_PATHS = ['/etc/ckan/gbif_dwca_extensions/core/dwc_occurrence.xml']
+
+# Name of the dynamic term in the darwin core. This is used to store all 
+# name/value pairs that do not match into an existing Darwin Core field
+DWC_DYNAMIC_TERM = 'dynamicProperties'
+
+# The id field (from the list of fields received by the datastore) to use as
+# common identifier across Darwin Core Archive extensions.
+DWC_ID_FIELD = '_id'
 ```
