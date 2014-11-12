@@ -166,10 +166,15 @@ class ResourceFile():
         return None
 
     def _base_name(self):
-        """Return the base name for the ZIP file"""
+        """Return the base name for the ZIP file
+
+        This uses the request parameters (excluding the email address) to
+        create a unique base name. Note that is should be insensitive to
+        order parameters.
+        """
         md5 = hashlib.md5()
-        cache_key_params = dict(self.request_params)
-        if 'email' in cache_key_params:
-            del cache_key_params['email']
-        md5.update(str(cache_key_params))
+        for key in sorted(self.request_params.keys()):
+            if key in ['email']:
+                continue
+            md5.update(str(key) + ':' + str(self.request_params[key]) + ';')
         return md5.hexdigest()

@@ -3,6 +3,7 @@ import time
 import tempfile
 import shutil
 import subprocess
+from collections import OrderedDict
 from nose.tools import assert_true, assert_false, assert_equals, assert_in
 from nose.tools import assert_not_in
 from ckanpackager.lib.resource_file import ResourceFile, ArchiveError
@@ -53,6 +54,27 @@ class TestResourcefile(object):
         resource.clean_work_files()
         # Now look for it again
         resource2 = ResourceFile(req, self._root, self._tempdir, 60*60*24)
+        assert_true(resource2.zip_file_exists())
+
+    def test_cached_zip_parameters(self):
+        """Check that the order of parameters and the email parameter
+        do not affect the ability to find a cached zip file"""
+        # Create a resource
+        req = OrderedDict()
+        req['resource_id'] = '123'
+        req['email'] = 'carrot'
+        req['hello'] = 'world'
+        resource = ResourceFile(req, self._root, self._tempdir, 60*60*24)
+        w = resource.get_writer()
+        w.write('hello world')
+        resource.create_zip(self._zip)
+        resource.clean_work_files()
+        # Now look for it again
+        req2 = OrderedDict()
+        req2['email'] = 'cake'
+        req2['hello'] = 'world'
+        req2['resource_id'] = '123'
+        resource2 = ResourceFile(req2, self._root, self._tempdir, 60*60*24)
         assert_true(resource2.zip_file_exists())
 
     def test_cached_zip_timeout(self):
