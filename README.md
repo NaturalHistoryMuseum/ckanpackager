@@ -40,7 +40,7 @@ The service provides two HTTP access points:
 Return the current status of the packager service. This expects a POST request, and returns a JSON dictionary.
 
 Parameters:
-- `secret`: The shared secret
+- `secret`: The shared secret (required). This is only secure over HTTPS.
 
 JSON result fields:
 - `worker_count`: Number of workers;
@@ -65,7 +65,7 @@ Example usage (Python):
 This expects a POST request, and returns a JSON dictionary. If the request is successful, the task is queued up. When the tasks gets to run, it will fetch the given resource (with filters applied), pack it into a ZIP file and email the link to the given email address.
 
 Parameters:
-- `secret`: The shared secret (required);
+- `secret`: The shared secret (required). This is only secure over HTTPS;
 - `api_url`: The CKAN datastore_search API URL (required);
 - `resource_id`: The resource to package (required);
 - `email`: The email to send the resource to (required)l
@@ -104,7 +104,7 @@ Example usage (Python):
 This expects a POST request, and returns a JSON dictionary. If the request is successful, the task is queued up. When the tasks gets to run, it will fetch the given resource file, put it into a ZIP file and email the link to the given email address.
 
 Parameters:
-- `secret`: The shared secret (required);
+- `secret`: The shared secret (required). This is only secure over HTTPS;
 - `resource_id`: The resource to package (required);
 - `resource_url`: The URL at which the file can be found(required);
 - `email`: The email to send the resource to (required);
@@ -131,6 +131,36 @@ Example usage (Python):
   response.close()
 ```
 
+### ckanpackager command line tool
+
+Ckanpackager also comes with a command line tool for sending requests to a ckanpackager instance:
+
+```
+# ckanpackager -h
+Ckanpackager command line utility
+
+This helps build and send requests to a ckanpackager instance.
+
+Usage: ckanpackager [options] status
+       ckanpackager [options] (cc|clear-cache)
+       ckanpackager [options] queue TASK [PARAM:VALUE ...]
+
+Options:
+    -h --help       Show this screen.
+    --version       Show version.
+    -q              Quiet. Don't output anything.
+    -p HOST         The ckanpackager host [default: http://127.0.0.1:8765]
+    -d FILE         Path to JSON file containing default values for
+                    parameters. Useful for specifying the secret and
+                    api_url. If not specified, then ckanpackager-cli will look
+                    for /etc/ckan/ckanpackager-cli.json and use that if present.
+                    Example:
+                    {"secret": "...", "api_url": "http://.../api/3/action/datastore_search"}
+    -s SECRET       The secret key. If present this will override the secret
+                    key in the default file (but any secret defined in the
+                    PARAM:VALUE parameters will override this one)
+```
+
 Configuration
 -------------
 
@@ -147,6 +177,8 @@ HOST = '127.0.0.1'
 PORT = 8765
 
 # Secret key. This ensures only approved applications can use this. YOU MUST CHANGE THIS VALUE TO YOUR OWN SECRET!
+# Note that this is only as secure as your communication chanel. If security is an issue, ensure all traffic
+# goes over HTTPS.
 SECRET = '8ba6d280d4ce9a416e9b604f3f0ebb'
 
 # Number of workers. Each worker processes one job at a time.

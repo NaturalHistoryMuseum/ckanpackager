@@ -115,7 +115,8 @@ class Request(object):
         return json.loads(response.read())
 
 
-if __name__ == '__main__':
+def run():
+    """Setup tools entry point"""
     arguments = docopt.docopt(__doc__, help=True, version=VERSION)
     quiet = arguments['-q']
     try:
@@ -138,3 +139,6 @@ if __name__ == '__main__':
         if not quiet:
             sys.stderr.write(str(e) + "\n")
         sys.exit(1)
+
+if __name__ == '__main__':
+    run()

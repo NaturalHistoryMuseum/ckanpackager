@@ -2,3 +2,4 @@ flask
 ijson
 unicodecsv
 lxml
+docopt
