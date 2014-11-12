@@ -8,6 +8,8 @@ HOST = '0.0.0.0'
 PORT = 8765
 
 # Secret key. This ensures only approved applications can use this. YOU MUST CHANGE THIS VALUE TO YOUR OWN SECRET!
+# Note that this is only as secure as your communication chanel. If security is an issue, ensure all traffic
+# goes over HTTPS.
 SECRET = '8ba6d280d4ce9a416e9b604f3f0ebb'
 
 # Number of workers. Each worker processes one job at a time.
