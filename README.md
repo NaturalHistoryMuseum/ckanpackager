@@ -1,5 +1,6 @@
 ckanpackager
 ============
+[![Build Status](https://travis-ci.org/NaturalHistoryMuseum/ckanpackager.svg?branch=master)](https://travis-ci.org/NaturalHistoryMuseum/ckanpackager) [![Coverage Status](https://img.shields.io/coveralls/NaturalHistoryMuseum/ckanpackager.svg)](https://coveralls.io/r/NaturalHistoryMuseum/ckanpackager)
 
 Overview
 --------
