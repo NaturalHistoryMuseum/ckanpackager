@@ -7,7 +7,6 @@ import logging
 from flask import Flask, g
 from ckanpackager.lib.queue import TaskQueue
 from ckanpackager.lib.multiprocessing_log_handler import MultiprocessingLogHandler
-from ckanpackager.controllers.errors import errors
 from ckanpackager.controllers.main import main
 
 # Create the application
@@ -45,7 +44,6 @@ def before_request():
 
 
 # Register our blueprints
-app.register_blueprint(errors)
 app.register_blueprint(main)
 
 # Start server (debug mode)

@@ -3,6 +3,7 @@ import glob
 from flask import request, Blueprint, current_app, g
 from flask.json import jsonify
 from ckanpackager import logic
+from ckanpackager.lib.utils import BadRequestError, NotAuthorizedError
 from ckanpackager.tasks.datastore_package_task import DatastorePackageTask
 from ckanpackager.tasks.dwc_archive_package_task import DwcArchivePackageTask
 from ckanpackager.tasks.url_package_task import UrlPackageTask
@@ -11,9 +12,8 @@ main = Blueprint('main', __name__)
 
 
 # Status page
-@main.route('/')
-@main.route('/index')
-@main.route('/index.html', methods=['POST'])
+@main.route('/', methods=['POST'])
+@main.route('/status', methods=['POST'])
 def status():
     logic.authorize_request(request.form)
     return jsonify(
@@ -71,3 +71,27 @@ def package_url():
         status='success',
         message=current_app.config['SUCCESS_MESSAGE']
     )
+
+
+# Handle BadRequestError
+@main.errorhandler(BadRequestError)
+def handle_bad_request(err):
+    response = jsonify({
+        'status': 'failed',
+        'error': 'BadRequestError',
+        'message': str(err)
+    })
+    response.status_code = 400
+    return response
+
+
+# Handle NotAuthorizedError
+@main.errorhandler(NotAuthorizedError)
+def handle_not_authorized(err):
+    response = jsonify({
+        'status': 'failed',
+        'error': 'NotAuthorizedError',
+        'message': str(err)
+    })
+    response.status_code = 401
+    return response
