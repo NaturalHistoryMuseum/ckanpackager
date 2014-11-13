@@ -7,4 +7,5 @@ install:
   - "pip install -r requirements.txt"
   - "pip install -r dev_requirements.txt"
 # command to run tests
-script: nosetests ckanpackager/tests/*.py
+script: coverage run --source=ckanpackager setup.py nosetests
+after_success: coveralls
