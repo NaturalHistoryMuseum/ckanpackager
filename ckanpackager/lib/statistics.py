@@ -1,6 +1,16 @@
 import time
-import json
 import dataset
+
+
+def statistics(database_url):
+    """Create a new CkanPackagerStatistics object and return it.
+
+    This is useful for one-liners: statistics(db).log_request(request)
+
+    @param database_url: database url as per
+           http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls
+    """
+    return CkanPackagerStatistics(database_url)
 
 
 class CkanPackagerStatistics(object):
@@ -32,7 +42,7 @@ class CkanPackagerStatistics(object):
             self._increase_totals('emails', resource_id=resource_id)
         # Store timestamped request 
         self._db['requests'].insert({
-            'timestamp': time.time(),
+            'timestamp': int(time.time()),
             'resource_id': resource_id,
             'email': email
         })
@@ -51,7 +61,7 @@ class CkanPackagerStatistics(object):
         self._increase_totals('errors', resource_id=resource_id)
         # Store timestamped error 
         self._db['errors'].insert({
-            'timestamp': time.time(),
+            'timestamp': int(time.time()),
             'resource_id': resource_id,
             'email': email,
             'message': message
@@ -66,7 +76,14 @@ class CkanPackagerStatistics(object):
         @returns: List of rows (as dictionaries)
         """
         result = []
-        for row in self._db['requests'].find(_offset=start, _limit=count, **kargs):
+        iterator = self._db['requests'].find(
+            _offset=start,
+            _limit=count,
+            order_by='-timestamp',
+            **kargs
+        )
+        for row in iterator:
+            del row['id']
             result.append(row)
         return result
 
@@ -79,8 +96,15 @@ class CkanPackagerStatistics(object):
         @returns: List of rows (as dictionaries)
         """
         result = []
-        for row in self._db['errors'].find(_offset=start, _limit=count, **kargs):
-             result.append(row)
+        iterator = self._db['errors'].find(
+            _offset=start,
+            _limit=count,
+            order_by='-timestamp',
+            **kargs
+        )
+        for row in iterator:
+            del row['id']
+            result.append(row)
         return result
 
     def get_totals(self):
@@ -91,7 +115,11 @@ class CkanPackagerStatistics(object):
         """
         totals = {}
         for row in self._db['totals'].all():
-            totals[row['resource_id']] = row
+            totals[row['resource_id']] = {
+                'emails': row['emails'],
+                'errors': row['errors'],
+                'requests': row['requests']
+            }
         return totals
  
     def _increase_totals(self, counter, **kargs):

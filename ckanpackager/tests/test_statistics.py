@@ -1,20 +1,11 @@
-import os
-import tempfile
-import shutil
 import time
-from nose.tools import assert_equals, assert_true
-from ckanpackager.lib.statistics import CkanPackagerStatistics
+from nose.tools import assert_equals, assert_true, assert_not_in
+from ckanpackager.lib.statistics import CkanPackagerStatistics, statistics
 
 class TestStatistics(object):
     def setUp(self):
-        """Create a temp folder to store databases"""
-        self._f = tempfile.mkdtemp()
-        self._d = CkanPackagerStatistics('sqlite:///' + os.path.join(self._f, 'db1'))
-
-    def tearDown(self):
-        """Delete temp folder"""
-        self._d = None
-        shutil.rmtree(self._f)
+        """Create a statistics object"""
+        self._d = CkanPackagerStatistics('sqlite:///:memory:')
 
     def test_log_request(self):
         """Test that requests are logged"""
@@ -37,9 +28,10 @@ class TestStatistics(object):
         assert_equals(1, len(requests))
         assert_equals('abcd', requests[0]['resource_id'])
         assert_equals('someone@example.com', requests[0]['email'])
+        assert_equals(type(requests[0]['timestamp']), int)
         # For the stats, an hour precision is enough - and this test
         # is unlikely to take more time so this test should be good.
-        assert_true(time.time() - requests[0]['timestamp'] < 60*60)
+        assert_true(int(time.time()) - requests[0]['timestamp'] < 60*60)
 
     def test_log_error(self):
         """Test that errors are logged"""
@@ -63,9 +55,10 @@ class TestStatistics(object):
         assert_equals('abcd', errors[0]['resource_id'])
         assert_equals('someone@example.com', errors[0]['email'])
         assert_equals('it failed', errors[0]['message'])
+        assert_equals(type(errors[0]['timestamp']), int)
         # For the stats, an hour precision is enough - and this test
         # is unlikely to take more time so this test should be good.
-        assert_true(time.time() - errors[0]['timestamp'] < 60*60)
+        assert_true(int(time.time()) - errors[0]['timestamp'] < 60*60)
 
     def test_overall_request_totals_updated(self):
         """Test that the overall request totals are updated"""
@@ -118,4 +111,50 @@ class TestStatistics(object):
         totals = self._d.get_totals()
         assert_equals(2, totals['abcd']['emails'])
 
+    def test_totals_dont_include_id(self):
+        """Check that the totals returned don't include an id field"""
+        self._d.log_request('abcd', 'someone1@example.com')
+        totals = self._d.get_totals()
+        assert_not_in('id', totals['*'])
+        assert_not_in('resource_id', totals['*'])
+        assert_not_in('id', totals['abcd'])
+        assert_not_in('resource_id', totals['abcd'])
 
+    def test_requests_dont_include_id(self):
+        """Check that the requests returned don't include an id field"""
+        self._d.log_request('abcd', 'someone1@example.com')
+        requests = self._d.get_requests()
+        assert_not_in('id', requests[0])
+
+    def test_errors_dont_include_id(self):
+        """Check that the errors returned don't include an id field"""
+        self._d.log_error('abcd', 'someone1@example.com', 'borken')
+        errors = self._d.get_errors()
+        assert_not_in('id', errors[0])
+
+    def test_requests_ordered_by_timestamp_desc(self):
+        """Check that the returned requests are ordered by timestamp desc"""
+        self._d.log_request('abcd', 'someone1@example.com')
+        time.sleep(1)
+        self._d.log_request('abcd', 'someone1@example.com')
+        time.sleep(1)
+        self._d.log_request('abcd', 'someone2@example.com')
+        requests = self._d.get_requests()
+        assert_true(requests[0]['timestamp'] > requests[1]['timestamp'])
+        assert_true(requests[1]['timestamp'] > requests[2]['timestamp'])
+
+    def test_errors_ordered_by_timestamp_desc(self):
+        """Check that the returned requests are ordered by timestamp desc"""
+        self._d.log_error('abcd', 'someone1@example.com', 'borken')
+        time.sleep(1)
+        self._d.log_error('abcd', 'someone1@example.com', 'borken')
+        time.sleep(1)
+        self._d.log_error('abcd', 'someone2@example.com', 'borken')
+        errors = self._d.get_errors()
+        assert_true(errors[0]['timestamp'] > errors[1]['timestamp'])
+        assert_true(errors[1]['timestamp'] > errors[2]['timestamp'])
+
+    def test_statistics_shortcut(self):
+        """Check that the 'statistics' shortcut returns an object as expected"""
+        o = statistics('sqlite:///:memory:')
+        assert_equals(CkanPackagerStatistics, type(o))
