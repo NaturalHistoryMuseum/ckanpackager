@@ -49,8 +49,8 @@ def application_statistics(stype=None):
             totals=statistics(current_app.config['STATS_DB']).get_totals()
         )
     elif stype in ['requests', 'errors']:
-        start = request.form.get('offset', 0)
-        count = request.form.get('limit', 100)
+        start = int(request.form.get('offset', 0))
+        count = int(request.form.get('limit', 100))
         conditions = {}
         if 'resource_id' in request.form:
             conditions['resource_id'] = request.form.get('resource_id')
