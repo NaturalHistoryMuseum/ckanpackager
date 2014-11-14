@@ -12,6 +12,11 @@ PORT = 8765
 # goes over HTTPS.
 SECRET = '8ba6d280d4ce9a416e9b604f3f0ebb'
 
+# Database to store request log, error log and statistics. URL as per
+# http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls
+# This is opened multiple times, so you can not use sqlite:///:memory:
+STATS_DB = 'sqlite:////var/lib/ckanpackager/stats.db'
+
 # Number of workers. Each worker processes one job at a time.
 WORKERS = 1
 

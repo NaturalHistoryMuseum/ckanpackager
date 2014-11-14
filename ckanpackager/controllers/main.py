@@ -4,6 +4,7 @@ from flask import request, Blueprint, current_app, g
 from flask.json import jsonify
 from ckanpackager import logic
 from ckanpackager.lib.utils import BadRequestError, NotAuthorizedError
+from ckanpackager.lib.statistics import statistics
 from ckanpackager.tasks.datastore_package_task import DatastorePackageTask
 from ckanpackager.tasks.dwc_archive_package_task import DwcArchivePackageTask
 from ckanpackager.tasks.url_package_task import UrlPackageTask
@@ -36,6 +37,42 @@ def clear_caches():
         status='success',
         message='Done.'
     )
+
+# Get statistics
+@main.route('/statistics', methods=['POST'])
+@main.route('/statistics/<stype>', methods=['POST'])
+def application_statistics(stype=None):
+    logic.authorize_request(request.form)
+    if stype is None:
+        return jsonify(
+            status='success',
+            totals=statistics(current_app.config['STATS_DB']).get_totals()
+        )
+    elif stype in ['requests', 'errors']:
+        start = request.form.get('offset', 0)
+        count = request.form.get('limit', 100)
+        conditions = {}
+        if 'resource_id' in request.form:
+            conditions['resource_id'] = request.form.get('resource_id')
+        if 'email' in request.form:
+            conditions['email'] = request.form.get('email')
+        if stype == 'requests':
+            return jsonify(
+                status='success',
+                requests=statistics(current_app.config['STATS_DB']).get_requests(
+                    start, count, **conditions
+                )
+            )
+        else:
+            return jsonify(
+                status='success',
+                errors=statistics(current_app.config['STATS_DB']).get_errors(
+                    start, count, **conditions
+                )
+            )
+    else:
+        raise BadRequestError('Unknown statistics request {}'.format(stype))
+
 
 # Package datastore task
 @main.route('/package_datastore', methods=['POST'])

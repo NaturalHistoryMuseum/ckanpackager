@@ -6,6 +6,7 @@ from datetime import datetime
 from email.mime.text import MIMEText
 from ckanpackager.lib.utils import BadRequestError
 from ckanpackager.lib.resource_file import ResourceFile
+from ckanpackager.lib.statistics import statistics
 
 
 class PackageTask(object):
@@ -51,6 +52,25 @@ class PackageTask(object):
         raise NotImplementedError
 
     def run(self):
+        """Run the task.
+
+        Note that this is run in a separate process - we shouldn't attempt to use flask api from here.
+        """
+        try:
+            self._run()
+            statistics(self.config['STATS_DB']).log_request(
+                self.request_params['resource_id'],
+                self.request_params['email']
+            )
+        except Exception as e:
+            statistics(self.config['STATS_DB']).log_error(
+                self.request_params['resource_id'],
+                self.request_params['email'],
+                str(e)
+            )
+            raise e
+
+    def _run(self):
         """Run the task.
 
         Note that this is run in a separate process - we shouldn't attempt to use flask api from here.

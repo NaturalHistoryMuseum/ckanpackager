@@ -1,5 +1,6 @@
 """Test the PackageTask class"""
 
+import os
 import tempfile
 import shutil
 import time
@@ -7,6 +8,7 @@ from nose.tools import assert_equals, assert_raises, assert_not_equals
 from nose.tools import assert_not_in
 from ckanpackager.tasks.package_task import PackageTask
 from ckanpackager.lib.utils import BadRequestError
+from ckanpackager.lib.statistics import CkanPackagerStatistics
 from ckanpackager.tests import smtpretty
 
 class DummyPackageTask(PackageTask):
@@ -24,6 +26,8 @@ class DummyPackageTask(PackageTask):
         }
 
     def create_zip(self, resource):
+        if self.request_params['carrot'] == 'break':
+            raise Exception('this is broken')
         resource.set_zip_file_name('the-zip-file.zip')
 
     def host(self):
@@ -37,9 +41,11 @@ class TestPackageTask(object):
     """Test the DummyPackageTask task."""
     def setUp(self):
         """Setup up test config&folders"""
+        self._temp_db_folder = tempfile.mkdtemp()
         self._config = {
             'STORE_DIRECTORY': tempfile.mkdtemp(),
             'TEMP_DIRECTORY': tempfile.mkdtemp(),
+            'STATS_DB': 'sqlite:///' + os.path.join(self._temp_db_folder, 'db'),
             'CACHE_TIME': 60*60*24,
             'EMAIL_FROM': '{resource_id}-{zip_file_name}-{ckan_host}-from',
             'EMAIL_BODY': '{resource_id};{zip_file_name};{ckan_host} body',
@@ -50,6 +56,7 @@ class TestPackageTask(object):
 
     def tearDown(self):
         """Remove temp folders"""
+        shutil.rmtree(self._temp_db_folder)
         shutil.rmtree(self._config['STORE_DIRECTORY'])
         shutil.rmtree(self._config['TEMP_DIRECTORY'])
 
@@ -176,3 +183,33 @@ class TestPackageTask(object):
             "the-resource-id;the-zip-file.zip;example.com body",
             smtpretty.last_message.body,
         )
+
+    @smtpretty.activate(2525)
+    def test_request_is_logged(self):
+        t = DummyPackageTask({
+            'resource_id': 'the-resource-id',
+            'email': 'recipient@example.com',
+            'carrot': 'cake'
+        }, self._config)
+        t.run()
+        stats = CkanPackagerStatistics(self._config['STATS_DB'])
+        requests = stats.get_requests()
+        assert_equals(1, len(requests))
+        assert_equals('the-resource-id', requests[0]['resource_id'])
+        assert_equals('recipient@example.com', requests[0]['email'])
+
+    @smtpretty.activate(2525)
+    def test_error_is_logged(self):
+        t = DummyPackageTask({
+            'resource_id': 'the-resource-id',
+            'email': 'recipient@example.com',
+            'carrot': 'break'
+        }, self._config)
+        with assert_raises(Exception) as context:
+            t.run()
+        stats = CkanPackagerStatistics(self._config['STATS_DB'])
+        errors = stats.get_errors()
+        assert_equals(1, len(errors))
+        assert_equals('the-resource-id', errors[0]['resource_id'])
+        assert_equals('recipient@example.com', errors[0]['email'])
+        assert_equals('this is broken', errors[0]['message'])

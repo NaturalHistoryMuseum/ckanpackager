@@ -2,6 +2,7 @@ DEBUG = False
 HOST = '127.0.0.1'
 PORT = 8765
 SECRET = '8ba6d280d4ce9a416e9b604f3f0ebb'
+STATS_DB = 'sqlite:////var/lib/ckanpackager/stats.db'
 WORKERS = 1
 REQUESTS_PER_WORKER = 1000
 PAGE_SIZE = 5000
