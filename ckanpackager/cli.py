@@ -5,6 +5,7 @@ This helps build and send requests to a ckanpackager instance.
 
 Usage: ckanpackager [options] status
        ckanpackager [options] (cc|clear-cache)
+       ckanpackager [options] (stats|statistics) [totals|requests|errors]
        ckanpackager [options] queue TASK [PARAM:VALUE ...]
 
 Options:
@@ -12,15 +13,25 @@ Options:
     --version       Show version.
     -q              Quiet. Don't output anything.
     -p HOST         The ckanpackager host [default: http://127.0.0.1:8765]
-    -d FILE         Path to JSON file containing default values for
-                    parameters. Useful for specifying the secret and
-                    api_url. If not specified, then ckanpackager-cli will look
-                    for /etc/ckan/ckanpackager-cli.json and use that if present.
-                    Example:
+    -d FILE         Path to JSON file containing default values for the
+                    parameters of the queue request. Useful for specifying the
+                    secret and api_url. If not specified, then ckanpackager-cli
+                    will look for /etc/ckan/ckanpackager-cli.json and use that
+                    if present. Example:
                     {"secret": "...", "api_url": "http://.../api/3/action/datastore_search"}
+                    Status, clear-cache and statistics commands will read the
+                    secret from this file, but will ignore the other parameters.
     -s SECRET       The secret key. If present this will override the secret
                     key in the default file (but any secret defined in the
                     PARAM:VALUE parameters will override this one)
+    -o OFFSET       Offset when querying requests/errors from the stats log
+                    [default: 0]
+    -l LIMIT        Limit when querying requests/errors from the stats log
+                    [default: 100]
+    -r RESOURCE_ID  Resource ID to filter on when querying requests/errors from
+                    the stats log
+    -e EMAIL        Email address to filter on when querying requests/errors
+                    from the stats log
 """
 import os
 import sys
@@ -88,7 +99,6 @@ class Request(object):
         self._path = 'clear_caches'
         self._operation = 'Clearing caches.'
 
-
     def queue_request(self, path, parameters):
         """Make this a generic task request
 
@@ -104,6 +114,33 @@ class Request(object):
             (param, value) = pv.split(':', 1)
             self._post[param] = value
         self._operation = 'Adding {} task to queue.'.format(path)
+
+    def stats_totals_request(self):
+        """Make this a request for general statistics"""
+        self._path = 'statistics'
+        self._operation = 'Fetching statistics.'
+
+    def statistics_request(self, fetch_requests, offset, limit, resource_id, email):
+        """Make this a requests/errors statistics request
+
+        @param fetch_requests: True to fetch requests, False to fetch errors
+        @param params: Parameters to send
+        """
+        if fetch_requests:
+            self._path = 'statistics/requests'
+        else:
+            self._path = 'statistics/errors'
+        post = {}
+        post['offset'] = offset
+        post['limit'] = limit
+        if resource_id is not None:
+            post['resource_id'] = resource_id
+        if email is not None:
+            post['email'] = email
+        if 'secret' in self._post:
+            post['secret'] = self._post['secret']
+        self._post = post
+        self._operation = 'Fetching statistics.'
 
     def send(self):
         """Send the request and return the json response as a dict"""
@@ -127,6 +164,17 @@ def run():
             request.cache_clear_request()
         elif arguments['queue']:
             request.queue_request(arguments['TASK'], arguments['PARAM:VALUE'])
+        elif arguments['stats'] or arguments['statistics']:
+            if not arguments['requests'] and not arguments['errors']:
+                request.stats_totals_request()
+            else:
+                request.statistics_request(
+                    arguments['requests'],
+                    int(arguments['-o']),
+                    int(arguments['-l']),
+                    arguments['-r'],
+                    arguments['-e']
+                )
         else:
             raise CkanPackagerError('Unknown command')
         if not quiet:
