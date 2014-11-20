@@ -107,14 +107,15 @@ class CkanPackagerStatistics(object):
             result.append(row)
         return result
 
-    def get_totals(self):
+    def get_totals(self, **kargs):
         """Return the overall stastitics (the totals)
 
+        @param **kargs: conditions on the totals table
         @returns: Dictionary of rows (as dictionaries), indexed by the resource
                   id.
         """
         totals = {}
-        for row in self._db['totals'].all():
+        for row in self._db['totals'].find(**kargs):
             totals[row['resource_id']] = {
                 'emails': row['emails'],
                 'errors': row['errors'],

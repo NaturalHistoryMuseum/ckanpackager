@@ -44,9 +44,14 @@ def clear_caches():
 def application_statistics(stype=None):
     logic.authorize_request(request.form)
     if stype is None:
+        conditions = {}
+        if 'resource_id' in request.form:
+            conditions['resource_id'] = request.form.get('resource_id')
         return jsonify(
-            status='success',
-            totals=statistics(current_app.config['STATS_DB']).get_totals()
+            status=True,
+            totals=statistics(current_app.config['STATS_DB']).get_totals(
+                **conditions
+            )
         )
     elif stype in ['requests', 'errors']:
         start = int(request.form.get('offset', 0))
@@ -58,14 +63,14 @@ def application_statistics(stype=None):
             conditions['email'] = request.form.get('email')
         if stype == 'requests':
             return jsonify(
-                status='success',
+                success=True,
                 requests=statistics(current_app.config['STATS_DB']).get_requests(
                     start, count, **conditions
                 )
             )
         else:
             return jsonify(
-                status='success',
+                success=True,
                 errors=statistics(current_app.config['STATS_DB']).get_errors(
                     start, count, **conditions
                 )

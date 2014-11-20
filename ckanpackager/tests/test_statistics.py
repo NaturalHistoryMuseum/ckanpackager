@@ -1,5 +1,5 @@
 import time
-from nose.tools import assert_equals, assert_true, assert_not_in
+from nose.tools import assert_equals, assert_true, assert_not_in, assert_in
 from ckanpackager.lib.statistics import CkanPackagerStatistics, statistics
 
 class TestStatistics(object):
@@ -119,6 +119,29 @@ class TestStatistics(object):
         assert_not_in('resource_id', totals['*'])
         assert_not_in('id', totals['abcd'])
         assert_not_in('resource_id', totals['abcd'])
+
+    def test_totals_return_all_resources(self):
+        """Check that, unfilterd, get_totals returns entries for all resources"""
+        self._d.log_request('abcd', 'someone1@example.com')
+        self._d.log_request('abcd', 'someone1@example.com')
+        self._d.log_request('efgh', 'someone3@example.com')
+        self._d.log_request('ijkl', 'someone3@example.com')
+        totals = self._d.get_totals()
+        assert_in('*', totals)
+        assert_in('abcd', totals)
+        assert_in('efgh', totals)
+        assert_in('ijkl', totals)
+
+    def test_totals_filters(self):
+        """Check it's possible to filter the rows returned by get_totals"""
+        self._d.log_request('abcd', 'someone1@example.com')
+        self._d.log_request('abcd', 'someone1@example.com')
+        self._d.log_request('abcd', 'someone2@example.com')
+        self._d.log_request('efgh', 'someone3@example.com')
+        totals = self._d.get_totals(resource_id='abcd')
+        assert_not_in('*', totals)
+        assert_not_in('efgh', totals)
+        assert_in('abcd', totals)
 
     def test_requests_dont_include_id(self):
         """Check that the requests returned don't include an id field"""

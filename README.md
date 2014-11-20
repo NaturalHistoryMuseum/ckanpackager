@@ -34,9 +34,9 @@ For production, you will want to use an Apache server with mod_wsgi enabled, and
 Usage
 -----
 
-The service provides two HTTP access points:
+The service provides multiple HTTP access points:
 
-### /
+### / and /status
 
 Return the current status of the packager service. This expects a POST request, and returns a JSON dictionary.
 
@@ -61,7 +61,7 @@ Example usage (Python):
   response.close()
 ```
 
-### package_datastore
+### /package_datastore
 
 This expects a POST request, and returns a JSON dictionary. If the request is successful, the task is queued up. When the tasks gets to run, it will fetch the given resource (with filters applied), pack it into a ZIP file and email the link to the given email address.
 
@@ -101,7 +101,7 @@ Example usage (Python):
   response.close()
 ```
 
-### package_url
+### /package_url
 This expects a POST request, and returns a JSON dictionary. If the request is successful, the task is queued up. When the tasks gets to run, it will fetch the given resource file, put it into a ZIP file and email the link to the given email address.
 
 Parameters:
@@ -132,12 +132,68 @@ Example usage (Python):
   response.close()
 ```
 
+### /statistics
+This expects a POST request, and returns a JSON dictionary.
+
+Parameters:
+- `secret`: The shared secret (required). This is only secure over HTTPS;
+- `resource_id`: Optionally only get statistics for the given resource id;
+
+JSON result fields:
+- `success`: True or False;
+- `totals`: A dictionary with one entry per resource (keyed by resource id)
+            with a special resource '*' containing the grand totals. If
+            `resource_id` was specified, only that resource is included.
+            Each entry contains thee fields:
+            - `emails`: Number of unique emails that requested this resource;
+            - `requests`: Number of requests made for this resource;
+            - `errors`: Number of errors that happened while generating this
+                        resource.
+
+### /statistics/requests
+This expects a POST request, and returns a JSON dictionary.
+
+Parameters:
+- `secret`: The shared secret (required). This is only secure over HTTPS;
+- `offset`: Offset to start fetching (defaults to 0);
+- `limit`: Number of entries to fetch (defaults to 100);
+- `resource_id`: Optionally only get requests for the given resource  id;
+- `email`: Optionally only get requests for the given email address.
+
+JSON result fields:
+- `success`: True or False;
+- `requests`: A list of individual requests (ordered by timestamp descending),
+              optionally filtered by resource_id and email. Each entry in
+              the list is a dictionary defining:
+              - `email`: The email that made the request;
+              - `resource_id`: The resource id of the request;
+              - `timestamp`: A UNIX timestamp of when the request was made.
+
+### /statistics/errors
+This expects a POST request, and returns a JSON dictionary.
+
+Parameters:
+- `secret`: The shared secret (required). This is only secure over HTTPS;
+- `offset`: Offset to start fetching (defaults to 0);
+- `limit`: Number of entries to fetch (defaults to 100);
+- `resource_id`: Optionally only get errors for the given resource id;
+- `email`: Optionally only get errors for the given email address.
+
+JSON result fields:
+- `success`: True or False;
+- `errors`: A list of individual errors (ordered by timestamp descending),
+              optionally filtered by resource_id and email. Each entry in
+              the list is a dictionary defining:
+              - `email`: The email that made the request;
+              - `resource_id`: The resource id of the request;
+              - `timestamp`: A UNIX timestamp of when the request was made.
+
 ### ckanpackager command line tool
 
 Ckanpackager also comes with a command line tool for sending requests to a ckanpackager instance:
 
 ```
-# ckanpackager -h
+$ ckanpackager -h
 Ckanpackager command line utility
 
 This helps build and send requests to a ckanpackager instance.
