@@ -2,6 +2,7 @@ import os
 import smtplib
 import hashlib
 import multiprocessing
+import traceback
 from datetime import datetime
 from email.mime.text import MIMEText
 from ckanpackager.lib.utils import BadRequestError
@@ -66,7 +67,7 @@ class PackageTask(object):
             statistics(self.config['STATS_DB']).log_error(
                 self.request_params['resource_id'],
                 self.request_params['email'],
-                str(e)
+                traceback.format_exc()
             )
             raise e
 
