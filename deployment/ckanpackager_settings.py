@@ -24,7 +24,7 @@ WORKERS = 1
 REQUESTS_PER_WORKER = 1000
 
 # Directory where the zip files are stored
-STORE_DIRECTORY = "/tmp/ckan/resources"
+STORE_DIRECTORY = "/var/www/ckanpackager"
 
 # Temp Directory used when creating the files
 TEMP_DIRECTORY = "/tmp"

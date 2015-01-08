@@ -46,8 +46,9 @@ def before_request():
 # Register our blueprints
 app.register_blueprint(main)
 
-# Start server (debug mode)
-if __name__ == '__main__':
+def run():
+    """ Start the server """
+    global app
     app.run(
         host=app.config['HOST'],
         port=app.config['PORT'],
@@ -56,3 +57,7 @@ if __name__ == '__main__':
         debug=True,
         use_reloader=False
     )
+
+# Start server (debug mode)
+if __name__ == '__main__':
+    run()

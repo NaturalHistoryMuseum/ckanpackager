@@ -8,7 +8,8 @@ setup(
   packages=find_packages(exclude='tests'),
   entry_points={
       'console_scripts': [
-          'ckanpackager = ckanpackager.cli:run'
+          'ckanpackager = ckanpackager.cli:run',
+          'ckanpackager-service = ckanpackager.application:run'
       ]
   }
 )
