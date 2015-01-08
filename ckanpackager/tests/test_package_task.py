@@ -5,7 +5,7 @@ import tempfile
 import shutil
 import time
 from nose.tools import assert_equals, assert_raises, assert_not_equals
-from nose.tools import assert_not_in
+from nose.tools import assert_not_in, assert_in
 from ckanpackager.tasks.package_task import PackageTask
 from ckanpackager.lib.utils import BadRequestError
 from ckanpackager.lib.statistics import CkanPackagerStatistics
@@ -212,4 +212,4 @@ class TestPackageTask(object):
         assert_equals(1, len(errors))
         assert_equals('the-resource-id', errors[0]['resource_id'])
         assert_equals('recipient@example.com', errors[0]['email'])
-        assert_equals('this is broken', errors[0]['message'])
+        assert_in('this is broken', errors[0]['message'])
