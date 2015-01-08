@@ -1,5 +1,6 @@
 import json
 import ijson
+from decimal import Decimal
 from lxml import etree
 from ckanpackager.lib.gbif_darwincore_mapping import GBIFDarwinCoreMapping
 from ckanpackager.lib.dwc_archive_structure import DwcArchiveStructure
@@ -48,7 +49,13 @@ class DwcArchivePackageTask(DatastorePackageTask):
         @returns: Number of rows saved
         """
         saved = 0
+        def no_decimal(x):
+            if isinstance(x, Decimal):
+                return float(x)
+            else:
+                return x
         for json_row in ijson.items(input_stream, 'result.records.item'):
+            json_row = dict([(k, no_decimal(v)) for (k, v) in json_row.items()])
             for extension in archive.extensions():
                 row = [json_row.get(self.config['DWC_ID_FIELD'], None)]
                 for term in archive.terms(extension):

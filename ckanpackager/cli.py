@@ -6,12 +6,15 @@ This helps build and send requests to a ckanpackager instance.
 Usage: ckanpackager [options] status
        ckanpackager [options] (cc|clear-cache)
        ckanpackager [options] (stats|statistics) [totals|requests|errors]
+       ckanpackager [options] reset (requests|errors)
        ckanpackager [options] queue TASK [PARAM:VALUE ...]
 
 Options:
     -h --help       Show this screen.
     --version       Show version.
     -q              Quiet. Don't output anything.
+    -x		    When invoking 'stats' or 'stats errors', set the exit code
+                    to 1 if there are errors in the queue.
     -p HOST         The ckanpackager host [default: http://127.0.0.1:8765]
     -d FILE         Path to JSON file containing default values for the
                     parameters of the queue request. Useful for specifying the
@@ -68,6 +71,7 @@ class Request(object):
         self._path = ''
         self._post = {}
         self._operation = ''
+        self._result_contains_errors = False
 
         provided_default_file = default_file is not False
         if not default_file:
@@ -149,13 +153,21 @@ class Request(object):
             response = urllib2.urlopen(url, urllib.urlencode(self._post))
         except urllib2.HTTPError as e:
             raise CkanPackagerError('Request failed: ' + str(e))
-        return json.loads(response.read())
+        data = json.loads(response.read())
+        if 'errors' in data and len(data['errors']) > 0:
+            self._result_contains_errors = True
+        elif 'totals' in data and data['totals']['*']['errors'] != 0:
+            self._result_contains_errors = True
+        return data
 
+    def result_contains_errors(self):
+        return self._result_contains_errors
 
 def run():
     """Setup tools entry point"""
     arguments = docopt.docopt(__doc__, help=True, version=VERSION)
     quiet = arguments['-q']
+    error_exit_code = arguments['-x']
     try:
         request = Request(arguments['-p'], arguments['-d'], arguments['-s'])
         if arguments['status']:
@@ -183,6 +195,9 @@ def run():
         if not quiet:
             print 'Response:'
             print json.dumps(data, indent=2)
+        if error_exit_code and request.result_contains_errors():
+            sys.exit(1)
+        sys.exit(0)
     except CkanPackagerError as e:
         if not quiet:
             sys.stderr.write(str(e) + "\n")
