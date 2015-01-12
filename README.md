@@ -22,27 +22,41 @@ Deployment
 ----------
 
 **Standalone**
+
 You can run the ckanpackager service on it's own by running:
 
 `CKANPACKAGER_CONFIG=[path to config file] ckanpackager-service`
 
-This will output all the logs directely to the terminal, so it is usefull for debuging.
+This will output all the logs directly to the terminal, so it is useful for debugging.
 
 **Apache**
+
 Using an Apache2 server with mod_wsgi enabled, you can use the following files:
 
 - `deployment/ckanpackager`: An example Apache2 virtual host file. Typically goes under `/etc/apache2/sites-available`;
-- `deployment/ckanpackager.wsgi`: A WSGI wrapper for ckanpackager. If using the default virtual host example this would be placed in `/etc/ckan/ckanpackager.wsgi`;
-- `deployment/ckanpackager_settings.py`: An example configuration file (see below for options). If using the default wsgi wrapper, this would be placed in `/etc/ckan/ckanpackager_settings.py`
+- `deployment/ckanpackager.wsgi`: A WSGI wrapper for ckanpackager. If using the default virtual host example this would be placed in `/etc/ckanpackager/ckanpackager.wsgi`;
+- `deployment/ckanpackager_settings.py`: An example configuration file (see below for options). If using the default wsgi wrapper, this would be placed in `/etc/ckanpackager/ckanpackager_settings.py`
 
 Note that the default setup runs a single instance of ckanpackager. You can run multiple instances, but they will not share tasks queues. The service itself is very fast - it only queues up tasks (which are run in a separate thread) so a single instance may be enough.
 
 **Docker**
-We provide an example Dockerfile in `deployment/Dockerfile` if you want to build ckanpackager inside a Docker container. Note that:
-- The example doesn't use Apache (gunicorn, or other alternative) - it runs `ckanpackager-service` directly. If a single instance of ckanpackager is not enough for your needs, you will to change this.
-- By default the statistics database of ckanpackager is stored within the container - so it will be deleted if you delete the container. You can mount `/var/lib/ckanpackager` on the host or in a data only container to avoid this.
 
-**Command lne**
+We provide a base docker image for ckanpackager. As per the Apache deployment example, this only runs one instance of the queuing service. You can get it by doing:
+
+```
+docker pull aliceh75/ckanpackager
+```
+
+You will need to create your own image that adds the configuration and CLI defaults. Here is an example Dockerfile you can use to do this:
+
+```
+FROM aliceh75/ckanpackager:0.2.1
+COPY ckanpackager_settings.py /etc/ckanpackager/ckanpackager_settings.py
+COPY ckanpackager-cli.json /etc/ckanpackager/ckanpackager-cli.json
+```
+
+**Command line**
+
 ckanpackager provides a command line interface to it's rest API for easy local administration. You can run it simply by doing:
 
 ```
@@ -228,7 +242,7 @@ Options:
     -d FILE         Path to JSON file containing default values for
                     parameters. Useful for specifying the secret and
                     api_url. If not specified, then ckanpackager-cli will look
-                    for /etc/ckan/ckanpackager-cli.json and use that if present.
+                    for /etc/ckanpackager/ckanpackager-cli.json and use that if present.
                     Example:
                     {"secret": "...", "api_url": "http://.../api/3/action/datastore_search"}
     -s SECRET       The secret key. If present this will override the secret
@@ -329,7 +343,7 @@ Additional configuration options:
 # Path to the Darwin Core Archive extensions. The first one listed will be the
 # core extension (as downloaded from http://rs.gbif.org/core/dwc_occurrence.xml),
 # followed by additional extensions (as obtained from http://rs.gbif.org/extension/)
-DWC_EXTENSION_PATHS = ['/etc/ckan/gbif_dwca_extensions/core/dwc_occurrence.xml']
+DWC_EXTENSION_PATHS = ['/etc/ckanpackager/gbif_dwca_extensions/core/dwc_occurrence.xml']
 
 # Name of the dynamic term in the darwin core. This is used to store all 
 # name/value pairs that do not match into an existing Darwin Core field

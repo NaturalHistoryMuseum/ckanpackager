@@ -20,10 +20,11 @@ Options:
                     parameters of the queue request. Useful for specifying the
                     secret and api_url. If not specified, then ckanpackager-cli
                     will look for /etc/ckan/ckanpackager-cli.json and use that
-                    if present. Example:
+                    if present unless -D is specified. Example:
                     {"secret": "...", "api_url": "http://.../api/3/action/datastore_search"}
                     Status, clear-cache and statistics commands will read the
                     secret from this file, but will ignore the other parameters.
+    -D              Do not use JSON file containing defaults. Overrides -d.
     -s SECRET       The secret key. If present this will override the secret
                     key in the default file (but any secret defined in the
                     PARAM:VALUE parameters will override this one)
@@ -42,9 +43,9 @@ import docopt
 import json
 import urllib, urllib2
 
+from version import __version__
 
-VERSION = 'ckanpackager CLI 0.1'
-DEFAULT_JSON_FILE = '/etc/ckan/ckanpackager-cli.json'
+DEFAULT_JSON_FILE = '/etc/ckanpackager/ckanpackager-cli.json'
 
 
 class CkanPackagerError(Exception):
@@ -53,7 +54,7 @@ class CkanPackagerError(Exception):
 
 
 class Request(object):
-    def __init__(self, host, default_file, secret):
+    def __init__(self, host, default_file, use_default, secret):
         """Represents a request to send to the ckanpackager service
 
         @param host: The ckanpackager host name
@@ -61,6 +62,7 @@ class Request(object):
                               POST parameter defaults. If this is False,
                               it will attempt to load the default file
                               at '/etc/ckan/ckanpackager-cli.json'
+        @param use_default: If False, do not use the defaults file.
         @param secret: If not False, the secret to sent to ckanpackager.
                        This will override the secret set in the defaults file,
                        but not secrets that may be defined later.
@@ -73,19 +75,20 @@ class Request(object):
         self._operation = ''
         self._result_contains_errors = False
 
-        provided_default_file = default_file is not False
-        if not default_file:
-            default_file = DEFAULT_JSON_FILE
-        if os.path.isfile(default_file):
-            with open(default_file) as f:
-                try:
-                    self._post = json.load(f)
-                except ValueError:
-                    raise CkanPackagerError(
-                        'File {} is not in JSON format'.format(default_file)
-                    )
-        elif provided_default_file:
-            raise CkanPackagerError('No such file: {}'.format(default_file))
+        if use_default:
+            provided_default_file = default_file is not False
+            if not default_file:
+                default_file = DEFAULT_JSON_FILE
+            if os.path.isfile(default_file):
+                with open(default_file) as f:
+                    try:
+                        self._post = json.load(f)
+                    except ValueError:
+                        raise CkanPackagerError(
+                            'File {} is not in JSON format'.format(default_file)
+                        )
+            elif provided_default_file:
+                raise CkanPackagerError('No such file: {}'.format(default_file))
 
         if secret:
             self._post['secret'] = secret
@@ -165,11 +168,12 @@ class Request(object):
 
 def run():
     """Setup tools entry point"""
-    arguments = docopt.docopt(__doc__, help=True, version=VERSION)
+    arguments = docopt.docopt(__doc__, help=True, version=__version__)
     quiet = arguments['-q']
     error_exit_code = arguments['-x']
     try:
-        request = Request(arguments['-p'], arguments['-d'], arguments['-s'])
+        request = Request(arguments['-p'], arguments['-d'],
+                          not arguments['-D'], arguments['-s'])
         if arguments['status']:
             request.status_request()
         elif arguments['cc'] or arguments['clear-cache']:

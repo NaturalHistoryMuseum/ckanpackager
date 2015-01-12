@@ -24,7 +24,7 @@ WORKERS = 1
 REQUESTS_PER_WORKER = 1000
 
 # Directory where the zip files are stored
-STORE_DIRECTORY = "/var/www/ckanpackager"
+STORE_DIRECTORY = "/var/www/ckanpackager/resources"
 
 # Temp Directory used when creating the files
 TEMP_DIRECTORY = "/tmp"
@@ -82,7 +82,7 @@ SMTP_PORT = 25
 # Path to the Darwin Core Archive extensions. The first one listed will be the
 # core extension (as downloaded from http://rs.gbif.org/core/dwc_occurrence.xml),
 # followed by additional extensions (as obtained from http://rs.gbif.org/extension/)
-DWC_EXTENSION_PATHS = ['/etc/ckan/gbif_dwca_extensions/core/dwc_occurrence.xml']
+DWC_EXTENSION_PATHS = ['/etc/ckanpackager/gbif_dwca_extensions/core/dwc_occurrence.xml']
 
 # Name of the dynamic term in the darwin core. This is used to store all
 # name/value pairs that do not match into an existing Darwin Core field

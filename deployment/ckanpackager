@@ -2,7 +2,7 @@
 
     ServerName ckanpackager
 
-    WSGIScriptAlias / /etc/ckan/ckanpackager.wsgi
+    WSGIScriptAlias / /etc/ckanpackager/ckanpackager.wsgi
     WSGIDaemonProcess ckanpackager processes=1 threads=1
 
     WSGIProcessGroup ckanpackager 
