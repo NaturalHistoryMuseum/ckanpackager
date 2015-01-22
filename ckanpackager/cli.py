@@ -157,10 +157,13 @@ class Request(object):
         except urllib2.HTTPError as e:
             raise CkanPackagerError('Request failed: ' + str(e))
         data = json.loads(response.read())
-        if 'errors' in data and len(data['errors']) > 0:
-            self._result_contains_errors = True
-        elif 'totals' in data and data['totals']['*']['errors'] != 0:
-            self._result_contains_errors = True
+        try:
+            if 'errors' in data and len(data['errors']) > 0:
+                self._result_contains_errors = True
+            elif 'totals' in data and data['totals']['*']['errors'] != 0:
+                self._result_contains_errors = True
+        except KeyError:
+                self._result_contains_errors = False
         return data
 
     def result_contains_errors(self):
