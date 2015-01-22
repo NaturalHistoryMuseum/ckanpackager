@@ -79,15 +79,40 @@ SMTP_PORT = 25
 # Following configuration options are for the generation of DarwinCore Archives
 #
 
-# Path to the Darwin Core Archive extensions. The first one listed will be the
-# core extension (as downloaded from http://rs.gbif.org/core/dwc_occurrence.xml),
-# followed by additional extensions (as obtained from http://rs.gbif.org/extension/)
-DWC_EXTENSION_PATHS = ['/etc/ckanpackager/gbif_dwca_extensions/core/dwc_occurrence.xml']
+# Define the field from the ckan result that will be used as an internal
+# identifier for each row within the archive.
+DWC_ID_FIELD = '_id'
 
-# Name of the dynamic term in the darwin core. This is used to store all
-# name/value pairs that do not match into an existing Darwin Core field
+# Define the core extension, which specifies what type of information the archive
+# contains. All the fields returned from ckan will be matched into this extension
+# if possible (name, or camel cased version of the name, must match).
+DWC_CORE_EXTENSION = '/etc/ckanpackager/gbif_dwca_extensions/core/dwc_occurrence.xml'
+
+# Define additional extensions. All the fields returned from ckan which cannot be
+# matched into the core extension will attempt to match into one of the
+# additional extensions.
+DWC_ADDITIONAL_EXTENSIONS = []
+
+# Define a dynamic field on the core extension used to store (as a JSON object)
+# all the ckan fields that could not be matched into an extension
 DWC_DYNAMIC_TERM = 'dynamicProperties'
 
-# The id field (from the list of fields received by the datastore) to use as
-# common identifier across Darwin Core Archive extensions.
-DWC_ID_FIELD = '_id'
+# Define a list of ckan fields which will contain a JSON list of objects, such
+# that each object is a row in a separate extension. This can be used to create
+# many to one relationships to the core extension. For each such field, we must
+# define the extension AND the list of expected fields with default values
+# should they be missing. (we could not, otherwise, get this without first
+# parsing the whole result set). Additional fields will be ignored silently.
+DWC_EXTENSION_FIELDS = {
+    'associatedMedia': {
+        'extension': '/etc/ckanpackager/gbif_dwca_extensions/extensions/multimedia.xml',
+        'fields': {
+            'type': 'StillImage',
+            'format': 'image/jpeg',
+            'identifier': '',
+            'title': '',
+            'license': 'http://creativecommons.org/licenses/by/4.0/',
+            'rightsHolder': ''
+        }
+    }
+}

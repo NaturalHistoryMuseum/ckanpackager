@@ -58,8 +58,12 @@ class GBIFDarwinCoreMapping(object):
             terms.append(term['name'])
         return terms
 
+    def has_extension(self, extension):
+        """ Returns True if that extension exists """
+        return extension in self._extensions
+
     def is_core_extension(self, extension):
-        """Returns True if the given extension is the core extension"""
+        """Returns True if the given extension exists and is the core extension"""
         return self._core_extension['name'] == extension
 
     def term_extension(self, term):

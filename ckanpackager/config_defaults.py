@@ -23,6 +23,20 @@ http://{ckan_host}/{zip_file_name}
 Best Wishes,
 The Data Portal Bot
 """
-DWC_EXTENSION_PATH = ['/etc/ckan/gbif_dwca_extensions/core/dwc_occurrence.xml']
-DWC_DYNAMIC_TERM = 'dynamicProperties'
 DWC_ID_FIELD = '_id'
+DWC_CORE_EXTENSION = '/etc/ckanpackager/gbif_dwca_extensions/core/dwc_occurrence.xml'
+DWC_ADDITIONAL_EXTENSIONS = []
+DWC_DYNAMIC_TERM = 'dynamicProperties'
+DWC_EXTENSION_FIELDS = {
+    'associatedMedia': {
+        'extension': '/etc/ckanpackager/gbif_dwca_extensions/extensions/multimedia.xml',
+        'fields': {
+            'type': '',
+            'format': '',
+            'identifier': '',
+            'title': '',
+            'license': '',
+            'rightsHolder': ''
+        }
+    }
+}

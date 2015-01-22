@@ -21,6 +21,20 @@ class TestGBIFDarwinCoreMapping(object):
             'Occurrence', 'MeasurementOrFact'
         ]))
 
+    def test_is_core_extension(self):
+        """ Ensure the first extension is set as core extension """
+        dwc_terms = GBIFDarwinCoreMapping(self.paths)
+        assert_true(dwc_terms.is_core_extension('Occurrence'))
+        assert_false(dwc_terms.is_core_extension('MeasurementOrFact'))
+        assert_false(dwc_terms.is_core_extension('ImNotReallyHere'))
+
+    def test_has_extension(self):
+        """ Ensure we can check whether an extension is present """
+        dwc_terms = GBIFDarwinCoreMapping(self.paths)
+        assert_true(dwc_terms.has_extension('Occurrence'))
+        assert_true(dwc_terms.has_extension('MeasurementOrFact'))
+        assert_false(dwc_terms.has_extension('ImNotReallyHere'))
+
     def test_expected_terms_in_occurrence(self):
         """Ensure we found the expected terms in Occurrence extension
         """
