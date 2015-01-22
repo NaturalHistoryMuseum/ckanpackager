@@ -3,7 +3,7 @@ FROM ubuntu:12.04
 #
 # Install Python & virtualenv
 #
-RUN apt-get update && apt-get install -y python python-virtualenv git build-essential python-dev libxml2-dev libxslt1-dev
+RUN apt-get update && apt-get install -y python python-virtualenv git build-essential python-dev libxml2-dev libxslt1-dev zip
 
 #
 # Install ckanpackager & dependencies in a virtualenv.
