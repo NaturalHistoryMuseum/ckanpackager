@@ -99,6 +99,8 @@ class DwcArchivePackageTask(DatastorePackageTask):
                         else:
                             combined = {}
                             for term_field, value in values.items():
+                                if value is None:
+                                    continue
                                 cc_field = self._camel_case(term_field)
                                 combined[cc_field] = value
                             row.append(json.dumps(combined))
