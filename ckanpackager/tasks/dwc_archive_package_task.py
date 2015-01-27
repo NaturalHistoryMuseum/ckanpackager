@@ -2,6 +2,8 @@ import json
 import ijson
 from decimal import Decimal
 from lxml import etree
+from uuid import uuid4
+from time import strftime, gmtime
 from ckanpackager.lib.gbif_darwincore_mapping import GBIFDarwinCoreMapping
 from ckanpackager.lib.dwc_archive_structure import DwcArchiveStructure
 from ckanpackager.tasks.datastore_package_task import DatastorePackageTask
@@ -19,6 +21,15 @@ class DwcArchivePackageTask(DatastorePackageTask):
             self._dwc_extension_fields[field_name] = GBIFDarwinCoreMapping(
                 [self.config['DWC_EXTENSION_FIELDS'][field_name]['extension']]
             )
+
+    def schema(self):
+        """Define the schema for datastore package tasks
+
+        Each field is a tuple defining (required, processing function, forward to ckan)
+        """
+        schema = super(DwcArchivePackageTask, self).schema()
+        schema['eml'] = (False, None, False)
+        return schema
 
     def _stream_headers(self, input_stream, resource):
         """Stream the list of fields and save the headers in the resource.
@@ -122,6 +133,8 @@ class DwcArchivePackageTask(DatastorePackageTask):
         """
         x_meta = etree.Element('archive')
         x_meta.attrib['xmlns'] = 'http://rs.tdwg.org/dwc/text/'
+        if 'eml' in self.request_params:
+            x_meta.attrib['metadata'] = 'eml.xml'
         for extension in archive.extensions():
             if self._dwc_core_terms.is_core_extension(extension):
                 x_section = etree.SubElement(x_meta, 'core')
@@ -152,6 +165,13 @@ class DwcArchivePackageTask(DatastorePackageTask):
                 x_field.attrib['term'] = terms.term_qualified_name(term)
         meta_writer = resource.get_writer('meta.xml')
         meta_writer.write(etree.tostring(x_meta, pretty_print=True))
+        if 'eml' in self.request_params:
+            eml_writer = resource.get_writer('eml.xml')
+            eml_writer.write(self.request_params['eml'].format(
+              package_id=uuid4(),
+              pub_date=strftime('%Y-%m-%d'),
+              date_stamp=strftime('%Y-%m-%dT%H:%M:%S+0000', gmtime())
+            ))
 
     def _row_for_extension(self, archive, extension, json_row):
         """ Return an input row with the fields relevant to an extension
