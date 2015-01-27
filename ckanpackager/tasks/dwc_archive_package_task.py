@@ -80,8 +80,7 @@ class DwcArchivePackageTask(DatastorePackageTask):
                 for index in range(ext_count):
                     row = [ext_row[self.config['DWC_ID_FIELD']][index]]
                     for term in archive.terms(extension):
-                        # Get all the input fields that go into this output
-                        # field, and combine into json if needed.
+                        # Get all the input fields that go into this output field
                         term_fields = archive.term_fields(extension, term)
                         values = {}
                         for (term_field, ext_term_field) in term_fields:
@@ -94,6 +93,7 @@ class DwcArchivePackageTask(DatastorePackageTask):
                                     values[inner_name] = None
                             else:
                                 values[term_field] = ext_row[term_field][index]
+                        # Output value or json if multiple values map.
                         if len(values) == 1:
                             row.append(values.values()[0])
                         else:
@@ -180,8 +180,8 @@ class DwcArchivePackageTask(DatastorePackageTask):
                         result[term_field] = json.loads(json_row[term_field])
                         if not isinstance(result[term_field], list):
                             result[term_field] = [result[term_field]]
-                    except (ValueError, KeyError):
-                        result[term_field] = [{}]
+                    except (ValueError, KeyError, TypeError):
+                        result[term_field] = []
                     for (index, value) in enumerate(result[term_field]):
                         result[term_field][index] = dict(
                             self.config['DWC_EXTENSION_FIELDS'][term_field]['fields'].items()
@@ -200,7 +200,10 @@ class DwcArchivePackageTask(DatastorePackageTask):
             l = len(result[term_field])
             if l == max_row:
                 continue
-            v = result[term_field][l-1]
+            if l > 0:
+                v = result[term_field][l-1]
+            else:
+                v = None
             for i in range(max_row - l):
                 result[term_field].append(v)
         return result
