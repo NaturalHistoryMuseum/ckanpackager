@@ -55,7 +55,7 @@ class DatastorePackageTask(PackageTask):
             # Get the records, page by page
             start = 0
             saved = -1
-            while saved == self.config['PAGE_SIZE'] or saved < 0:
+            while saved >= self.config['PAGE_SIZE'] or saved < 0:
                 logger.info("Task {} processing page ({},{})".format(self, start, self.config['PAGE_SIZE']))
                 with ckan_resource.get_stream(start, self.config['PAGE_SIZE']) as input_stream:
                     saved = self._stream_records(input_stream, fields, resource)
