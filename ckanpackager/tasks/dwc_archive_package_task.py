@@ -70,9 +70,9 @@ class DwcArchivePackageTask(DatastorePackageTask):
         @param input_stream: file-like object representing the input stream
         @type archive: DwcArchiveStructure
         @type resource: ResourceFile
-        @returns: Number of rows saved
+        @returns: Number of rows read
         """
-        saved = 0
+        input_rows = 0
         def no_decimal(x):
             if isinstance(x, Decimal):
                 return float(x)
@@ -122,8 +122,8 @@ class DwcArchivePackageTask(DatastorePackageTask):
                                 combined[cc_field] = value
                             row.append(json.dumps(combined))
                     w.writerow(row)
-                    saved += 1
-        return saved
+            input_rows += 1
+        return input_rows
 
     def _finalize_resource(self, archive, resource):
         """Finalize the resource before ZIPing it.

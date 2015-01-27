@@ -54,12 +54,12 @@ class DatastorePackageTask(PackageTask):
                 #FIXME: Test for failure
             # Get the records, page by page
             start = 0
-            saved = -1
-            while saved >= self.config['PAGE_SIZE'] or saved < 0:
+            input_rows = -1
+            while input_rows == self.config['PAGE_SIZE'] or input_rows < 0:
                 logger.info("Task {} processing page ({},{})".format(self, start, self.config['PAGE_SIZE']))
                 with ckan_resource.get_stream(start, self.config['PAGE_SIZE']) as input_stream:
-                    saved = self._stream_records(input_stream, fields, resource)
-                start += self.config['PAGE_SIZE']
+                    input_rows = self._stream_records(input_stream, fields, resource)
+                start += input_rows
             # Finalize the resource
             self._finalize_resource(fields, resource)
             # Zip the file
@@ -92,17 +92,17 @@ class DatastorePackageTask(PackageTask):
                        as returned by _stream_headers
         @param resource: Resource file
         @type resource: ResourceFile
-        @returns: Number of rows saved
+        @returns: Number of rows read
         """
-        saved = 0
+        input_rows = 0
         w = resource.get_csv_writer('resource.csv')
         for json_row in ijson.items(input_stream, 'result.records.item'):
             row = []
             for field_id in fields:
                 row.append(json_row.get(field_id, None))
             w.writerow(row)
-            saved += 1
-        return saved
+            input_rows += 1
+        return input_rows
 
     def _finalize_resource(self, fields, resource):
         """Finalize the resource before ZIPing it.
