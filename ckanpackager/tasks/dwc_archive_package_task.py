@@ -101,6 +101,12 @@ class DwcArchivePackageTask(DatastorePackageTask):
                             for term_field, value in values.items():
                                 if value is None:
                                     continue
+                                try:
+                                    # We are doing JSON anyway, we might as
+                                    # well un-json sub-values.
+                                    value = json.loads(value)
+                                except (ValueError, TypeError):
+                                    pass
                                 cc_field = self._camel_case(term_field)
                                 combined[cc_field] = value
                             row.append(json.dumps(combined))
