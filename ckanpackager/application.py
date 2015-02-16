@@ -7,7 +7,10 @@ import logging
 from flask import Flask, g
 from ckanpackager.lib.queue import TaskQueue
 from ckanpackager.lib.multiprocessing_log_handler import MultiprocessingLogHandler
-from ckanpackager.controllers.main import main
+from ckanpackager.controllers.status import status
+from ckanpackager.controllers.actions import actions
+from ckanpackager.controllers.packagers import packagers
+from ckanpackager.controllers.error_handlers import error_handlers
 
 # Create the application
 app = Flask(__name__)
@@ -40,11 +43,14 @@ if not os.path.exists(app.config['STORE_DIRECTORY']):
 queue = TaskQueue(app.config['WORKERS'], app.config['REQUESTS_PER_WORKER'])
 @app.before_request
 def before_request():
-    g.queue = queue
+    g.queue_task = queue.add
 
 
 # Register our blueprints
-app.register_blueprint(main)
+app.register_blueprint(status)
+app.register_blueprint(actions)
+app.register_blueprint(packagers)
+app.register_blueprint(error_handlers)
 
 def run():
     """ Start the server """
