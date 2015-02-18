@@ -18,7 +18,6 @@ def handle_bad_request(err):
 
 @error_handlers.app_errorhandler(NotAuthorizedError)
 def handle_not_authorized(err):
-    print "CARROT CAKE"
     response = jsonify({
         'status': 'failed',
         'error': 'NotAuthorizedError',

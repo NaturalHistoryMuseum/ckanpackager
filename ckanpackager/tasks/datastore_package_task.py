@@ -1,4 +1,3 @@
-import multiprocessing
 import json
 import ijson
 from urlparse import urlparse
@@ -37,6 +36,18 @@ class DatastorePackageTask(PackageTask):
         """Return the host name for the request"""
         return urlparse(self.request_params['api_url']).netloc
 
+    def speed(self):
+        """ Return the expected task duration """
+        if self.request_params.get('limit', False):
+            offset = int(self.request_params.get('offset', 0))
+            limit = int(self.request_params['limit']) - offset
+            if limit > self.config['SLOW_REQUEST']:
+                return 'slow'
+            else:
+                return 'fast'            
+        else:
+            return 'slow'
+
     def create_zip(self, resource):
         """Create the ZIP file matching the current request
 
@@ -46,9 +57,8 @@ class DatastorePackageTask(PackageTask):
         ckan_params = dict([(k, v) for (k, v) in self.request_params.items() if schema[k][2]])
         ckan_resource = CkanResource(self.request_params['api_url'], self.request_params.get('key', None), ckan_params)
         try:
-            logger = multiprocessing.get_logger()
             # Read the datastore fields, and generate the package structure.
-            logger.info("Task {} fetching field list".format(self))
+            self.log.info("Fetching field list")
             with ckan_resource.get_stream(0, 0) as input_stream:
                 fields = self._stream_headers(input_stream, resource)
                 #FIXME: Test for failure
@@ -56,7 +66,7 @@ class DatastorePackageTask(PackageTask):
             start = 0
             input_rows = -1
             while input_rows == self.config['PAGE_SIZE'] or input_rows < 0:
-                logger.info("Task {} processing page ({},{})".format(self, start, self.config['PAGE_SIZE']))
+                self.log.info("Processing page ({},{})".format(start, self.config['PAGE_SIZE']))
                 with ckan_resource.get_stream(start, self.config['PAGE_SIZE']) as input_stream:
                     input_rows = self._stream_records(input_stream, fields, resource)
                 start += input_rows

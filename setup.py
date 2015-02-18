@@ -12,7 +12,7 @@ setup(
   entry_points={
       'console_scripts': [
           'ckanpackager = ckanpackager.cli:run',
-          'ckanpackager-service = ckanpackager.application:run'
+          'ckanpackager-service = ckanpackager.service:run'
       ]
   }
 )

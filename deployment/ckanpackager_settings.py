@@ -17,11 +17,10 @@ SECRET = '8ba6d280d4ce9a416e9b604f3f0ebb'
 # This is opened multiple times, so you can not use sqlite:///:memory:
 STATS_DB = 'sqlite:////var/lib/ckanpackager/stats.db'
 
-# Number of workers. Each worker processes one job at a time.
-WORKERS = 1
-
-# Number of requests each worker should process before being restarted.
-REQUESTS_PER_WORKER = 1000
+# Celery (message queue) broker. See http://celery.readthedocs.org/en/latest/getting-started/first-steps-with-celery.html#choosing-a-broker
+# Defaults to 'redis://localhost:6379/0' . To test this (but not for production)
+# you can use sqlite with 'sqla+sqlite:////tmp/celery.db'
+CELERY_BROKER = 'redis://localhost:6379/0'
 
 # Directory where the zip files are stored
 STORE_DIRECTORY = "/var/www/ckanpackager/resources"
@@ -36,6 +35,10 @@ CACHE_TIME = 60*60*24
 # Page Size. Number of rows to fetch in a single CKAN request. Note that CKAN will timeout requests at 60s, so make sure
 # to stay comfortably below that line.
 PAGE_SIZE = 5000
+
+# Slow request. Number of rows from which a request will be assumed to be slow,
+# and put on the slow queue.
+SLOW_REQUEST = 50000
 
 # Shell command used to zip the file. {input} gets replaced by the input file name, and {output} by the output file
 # name. You do not need to put quotes around those.

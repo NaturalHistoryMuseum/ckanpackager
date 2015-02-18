@@ -12,7 +12,7 @@ This is useful for allowing people to download very large datasets (tested on a 
 Features:
 - Works for file resources as well resources uploaded to the datastore;
 - Can apply filters and full text queries when fetching from the datastore;
-- Configurable number of workers and a queuing system ensures administrators can control the resources used;
+- Uses [celery](http://www.celeryproject.org/) for the task queue;
 - Data is processed as it is streamed from CKAN, so the memory usage is kept low;
 
 Note: ckanpackager streams the info and drops the connection as soon as it has the data it wants. This means your CKAN server might show broken pipe errors. That's fine.
@@ -21,7 +21,7 @@ Note: ckanpackager streams the info and drops the connection as soon as it has t
 Deployment
 ----------
 
-**Standalone**
+**Ckanpackager service, standalone**
 
 You can run the ckanpackager service on it's own by running:
 
@@ -29,7 +29,7 @@ You can run the ckanpackager service on it's own by running:
 
 This will output all the logs directly to the terminal, so it is useful for debugging.
 
-**Apache**
+**Ckanpackager service under Apache**
 
 Using an Apache2 server with mod_wsgi enabled, you can use the following files:
 
@@ -37,11 +37,39 @@ Using an Apache2 server with mod_wsgi enabled, you can use the following files:
 - `deployment/ckanpackager.wsgi`: A WSGI wrapper for ckanpackager. If using the default virtual host example this would be placed in `/etc/ckanpackager/ckanpackager.wsgi`;
 - `deployment/ckanpackager_settings.py`: An example configuration file (see below for options). If using the default wsgi wrapper, this would be placed in `/etc/ckanpackager/ckanpackager_settings.py`
 
-Note that the default setup runs a single instance of ckanpackager. You can run multiple instances, but they will not share tasks queues. The service itself is very fast - it only queues up tasks (which are run in a separate thread) so a single instance may be enough.
+Note that the default setup runs a single instance of ckanpackager. 
 
+**Task worker (Celery)**
+
+The tasks are performed by a separate process which needs to be started separately. This can be done by doing:
+
+`CKANPACKAGER_CONFIG=[path to config file] celery -A ckanpackager.task_setup.app --queues=fast,slow worker`
+
+Note that there are two queues - one for slow tasks (as configured by number of records) and one for fast tasks. You can process both using a single celery worker, or use two separate workers allowing fast tasks to not wait for the slower ones. Some usefull celery options:
+
+- `--events`: Ensures events are sent by the worker, allowing monitoring tools such as flower to report on activity;
+- `--concurrency=N`: Number of worker processes;
+- `--maxtasksperchild=N`: Number of tasks to process before restarting worker processes
+- `--hostname=NAME`: Name of the worker;
+- `--loglevel=INFO`: Log level
+- `--detach`: Daemonize.
+
+So starting two workers, one for each queue, could be done as:
+
+```
+ CKANPACKAGER_CONFIG=/etc/ckanpackager/ckanpackager_settings.py celery -A ckanpackager.task_setup.app --detach --events --concurrency=1 --maxtasksperchild=1000 --queues=slow --hostname=slow.%h worker --loglevel=INFO
+ CKANPACKAGER_CONFIG=/etc/ckanpackager/ckanpackager_settings.py celery -A ckanpackager.task_setup.app --detach --events --concurrency=1 --maxtasksperchild=1000 --queues=fast --hostname=fast.%h worker --loglevel=INFO
+```
+ 
 **Docker**
 
-We provide a base docker image for ckanpackager. As per the Apache deployment example, this only runs one instance of the queuing service. You can get it by doing:
+We provide a base docker image for ckanpackager. The docker image contains:
+- One instance of the queuing service;
+- One Redis server for storing tasks;
+- Two celery workers (one for the slow queue and one for the fast queue);
+- [Flower](http://flower.readthedocs.org/en/latest/), a Celery monitoring tool which can be accessed on port 5555.
+
+You can get the docker image by doing:
 
 ```
 docker pull aliceh75/ckanpackager
@@ -275,11 +303,10 @@ SECRET = '8ba6d280d4ce9a416e9b604f3f0ebb'
 # This is opened multiple times, so you can not use sqlite:///:memory:
 STATS_DB = 'sqlite:////var/lib/ckanpackager/stats.db'
 
-# Number of workers. Each worker processes one job at a time.
-WORKERS = 1
-
-# Number of requests each worker should process before being restarted.
-REQUESTS_PER_WORKER = 1000
+# Celery (message queue) broker. See http://celery.readthedocs.org/en/latest/getting-started/first-steps-with-celery.html#choosing-a-broker
+# Defaults to 'redis://localhost:6379/0' . To test this (but not for production)
+# you can use sqlite with 'sqla+sqlite:////tmp/celery.db'
+CELERY_BROKER = 'redis://localhost:6379/0'
 
 # Directory where the zip files are stored
 STORE_DIRECTORY = "/tmp/ckanpackager"
@@ -294,6 +321,10 @@ CACHE_TIME = 60*60*24
 # Page Size. Number of rows to fetch in a single CKAN request. Note that CKAN will timeout requests at 60s, so make sure
 # to stay comfortably below that line.
 PAGE_SIZE = 5000
+
+# Slow request. Number of rows from which a request will be assumed to be slow,
+# and put on the slow queue.
+SLOW_REQUEST = 50000
 
 # Shell command used to zip the file. {input} gets replaced by the input file name, and {output} by the output file
 # name. You do not need to put quotes around those.

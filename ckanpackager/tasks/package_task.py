@@ -1,7 +1,7 @@
 import os
 import smtplib
 import hashlib
-import multiprocessing
+import logging
 import traceback
 from datetime import datetime
 from email.mime.text import MIMEText
@@ -13,8 +13,8 @@ from ckanpackager.lib.statistics import statistics
 class PackageTask(object):
     """Base class for DatastorePackageTask and UrlPackageTask
 
-    Note that __init__ is run in the main thread, under flask, while 'run' and 'str' are typically
-    run in a sub-process. __str__ and run should not access Flask API.
+    Note that all methods may be called from the web service or the task
+    consumer.
 
     Derived classes must implement:
 
@@ -24,11 +24,16 @@ class PackageTask(object):
                 as (True, None) if not defined;
     - host(): Return the hostname for the current request;
     - create_zip(ResourceFile): Create the ZIP file associated with the given resource file;
+
+    In addition, derived class should implement:
+    - speed(): Return 'slow' or 'fast' depending on the expected duration of the
+               task. If not implemented, this always returns 'slow'.
     """
     def __init__(self, params, config):
         self.config = config
         self.time = str(datetime.now())
         self.request_params = {}
+        self.log = logging.getLogger(__name__)
         schema = self.schema()
         if 'email' not in schema:
             schema['email'] = (True, None)
@@ -51,13 +56,17 @@ class PackageTask(object):
 
     def host(self):
         raise NotImplementedError
+  
+    def speed(self):
+        return 'slow'
 
-    def run(self):
-        """Run the task.
-
-        Note that this is run in a separate process - we shouldn't attempt to use flask api from here.
-        """
+    def run(self, logger=None):
+        """Run the task."""
         try:
+            if logger is not None:
+                self.log = logger
+            else:
+                self.log = logging.getLogger(__name__)
             self._run()
             statistics(self.config['STATS_DB']).log_request(
                 self.request_params['resource_id'],
@@ -72,12 +81,8 @@ class PackageTask(object):
             raise e
 
     def _run(self):
-        """Run the task.
-
-        Note that this is run in a separate process - we shouldn't attempt to use flask api from here.
-        """
-        logger = multiprocessing.get_logger()
-        logger.info("Task {} parameters: {}".format(self, str(self.request_params)))
+        """Run the task"""
+        self.log.info("Task parameters: {}".format(str(self.request_params)))
         # Get/create the file
         resource = ResourceFile(
             self.request_params,
@@ -88,9 +93,9 @@ class PackageTask(object):
         if not resource.zip_file_exists():
             self.create_zip(resource)
         else:
-            logger.info("Task {} found file in cache".format(self))
+            self.log.info("Found file in cache")
         zip_file_name = resource.get_zip_file_name()
-        logger.info("Task {} got ZIP file {}. Emailing link.".format(self, zip_file_name))
+        self.log.info("Got ZIP file {}. Emailing link.".format(zip_file_name))
         # Email the link
         place_holders = {
             'resource_id': self.request_params['resource_id'],

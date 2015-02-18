@@ -1,6 +1,5 @@
 import shutil
 import urllib2
-import multiprocessing
 from urlparse import urlparse
 from ckanpackager.tasks.package_task import PackageTask
 
@@ -20,16 +19,19 @@ class UrlPackageTask(PackageTask):
         """Return the host name for the request"""
         return urlparse(self.request_params['resource_url']).netloc
 
+    def speed(self):
+        """ Return the expected task duration """
+        return 'fast'
+
     def create_zip(self, resource):
         """Create the ZIP file matching the current request
 
         @return: The ZIP file name
         """
-        logger = multiprocessing.get_logger()
         try:
             output_stream = resource.get_writer()
             input_stream = urllib2.urlopen(self.request_params['resource_url'])
-            logger.info("Task {} fetching and saving file.".format(self))
+            self.log.info("Fetching and saving file.")
             shutil.copyfileobj(input_stream, output_stream)
             resource.create_zip(self.config['ZIP_COMMAND'])
         finally:
