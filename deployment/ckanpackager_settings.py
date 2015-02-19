@@ -38,7 +38,7 @@ PAGE_SIZE = 5000
 
 # Slow request. Number of rows from which a request will be assumed to be slow,
 # and put on the slow queue.
-SLOW_REQUEST = 50000
+SLOW_REQUEST = 10000
 
 # Shell command used to zip the file. {input} gets replaced by the input file name, and {output} by the output file
 # name. You do not need to put quotes around those.
