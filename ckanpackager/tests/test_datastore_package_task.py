@@ -3,6 +3,7 @@
 import json
 import httpretty
 import urllib
+import tempfile
 from nose.tools import assert_raises, assert_equals, assert_true
 from ckanpackager.lib.utils import BadRequestError
 from ckanpackager.tasks.datastore_package_task import DatastorePackageTask
@@ -32,13 +33,20 @@ class DummyResource(object):
     def clean_work_files(self):
         self.clean_invoked = True
 
+    def zip_file_exits(self):
+        return self.create_invoked
+
 
 class TestDatastorePackageTask(object):
     def setUp(self):
         """Setup up test config&folders"""
         self._config = {
             'ZIP_COMMAND': "/usr/bin/zip -j {output} {input}",
-            'PAGE_SIZE': 3
+            'PAGE_SIZE': 3,
+            'SLOW_REQUEST': 2,
+            'STORE_DIRECTORY': tempfile.gettempdir(),
+            'TEMP_DIRECTORY': tempfile.gettempdir(),
+            'CACHE_TIME': 60
         }
         self._task = DatastorePackageTask({
             'resource_id': 'the-resource-id',
@@ -124,3 +132,23 @@ class TestDatastorePackageTask(object):
         r = DummyResource()
         self._task.create_zip(r)
         assert_true(r.clean_invoked)
+
+    def test_speed_is_fast_with_few_rows(self):
+        """ Ensure the speed is fast when few rows are present"""
+        t = DatastorePackageTask({
+            'resource_id': 'the-resource-id',
+            'email': 'someone@0.0.0.0',
+            'api_url': 'http://example.com/datastore/search',
+            'limit': 1
+        }, self._config)
+        assert_equals('fast', t.speed())
+
+    def test_speed_is_slow_with_many_rows(self):
+        """ Ensure the speed is fast when many rows are present"""
+        t = DatastorePackageTask({
+            'resource_id': 'the-resource-id',
+            'email': 'someone@0.0.0.0',
+            'api_url': 'http://example.com/datastore/search',
+            'limit': 4
+        }, self._config)
+        assert_equals('slow', t.speed())

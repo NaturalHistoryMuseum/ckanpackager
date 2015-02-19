@@ -28,7 +28,12 @@ class DummyPackageTask(PackageTask):
     def create_zip(self, resource):
         if self.request_params['carrot'] == 'break':
             raise Exception('this is broken')
-        resource.set_zip_file_name('the-zip-file.zip')
+        if self.request_params['carrot'] == 'create-zip':
+            w = resource.get_writer()
+            w.write('-')
+            resource.create_zip('cp {input} {output}')
+        else:
+            resource.set_zip_file_name('the-zip-file.zip')
 
     def host(self):
         return 'example.com'
@@ -213,3 +218,21 @@ class TestPackageTask(object):
         assert_equals('the-resource-id', errors[0]['resource_id'])
         assert_equals('recipient@example.com', errors[0]['email'])
         assert_in('this is broken', errors[0]['message'])
+
+    def test_speed_is_slow_when_resource_not_cached(self):
+        t = DummyPackageTask({
+            'resource_id': 'the-resource-id',
+            'email': 'recipient@example.com',
+            'carrot': 'cake'
+        }, self._config)
+        assert_equals('slow', t.speed())
+
+    @smtpretty.activate(2525)
+    def test_speed_is_fast_when_resource_is_cached(self):
+        t = DummyPackageTask({
+            'resource_id': 'the-resource-id',
+            'email': 'recipient@example.com',
+            'carrot': 'create-zip'
+        }, self._config)
+        t.run()
+        assert_equals('fast', t.speed())

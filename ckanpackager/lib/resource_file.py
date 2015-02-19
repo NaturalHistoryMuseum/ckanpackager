@@ -41,6 +41,7 @@ class ResourceFile():
         if zip_file_name:
             self.zip_file_name = zip_file_name
             return True
+        return False
 
     def get_zip_file_name(self):
         """Return the file name of ZIP the file, or None.

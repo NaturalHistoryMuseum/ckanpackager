@@ -37,14 +37,21 @@ class DatastorePackageTask(PackageTask):
         return urlparse(self.request_params['api_url']).netloc
 
     def speed(self):
-        """ Return the expected task duration """
+        """ Return the expected task duration.
+
+         If the file exists in the cache, then this is assumed to be fast,
+         Otherwise this is assumed to be fast only if there less than
+         the configures SLOW_REQUEST number of rows.
+         """
+        if super(DatastorePackageTask, self).speed() == 'fast':
+            return 'fast'
         if self.request_params.get('limit', False):
             offset = int(self.request_params.get('offset', 0))
             limit = int(self.request_params['limit']) - offset
             if limit > self.config['SLOW_REQUEST']:
                 return 'slow'
             else:
-                return 'fast'            
+                return 'fast'
         else:
             return 'slow'
 

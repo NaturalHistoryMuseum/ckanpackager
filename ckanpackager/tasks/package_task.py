@@ -58,7 +58,21 @@ class PackageTask(object):
         raise NotImplementedError
   
     def speed(self):
-        return 'slow'
+        """ Return the task estimated time as either 'fast' or 'slow'.
+
+        If the file exists in the cache, then this returns 'fast'. It returns
+        'slow' otherwise.
+        """
+        resource = ResourceFile(
+            self.request_params,
+            self.config['STORE_DIRECTORY'],
+            self.config['TEMP_DIRECTORY'],
+            self.config['CACHE_TIME']
+        )
+        if resource.zip_file_exists():
+            return 'fast'
+        else:
+            return 'slow'
 
     def run(self, logger=None):
         """Run the task."""
