@@ -30,6 +30,7 @@ RUN virtualenv /usr/lib/ckanpackager                                            
 COPY ckanpackager_settings.py /etc/ckanpackager/ckanpackager_settings.py
 COPY gbif_dwca_extensions /etc/ckanpackager/gbif_dwca_extensions
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY celery_flower.sh /usr/local/bin/celery_flower.sh
 COPY redis.conf /etc/redis.conf
 
 ENV CKANPACKAGER_CONFIG=/etc/ckanpackager/ckanpackager_settings.py
