@@ -1,4 +1,5 @@
 import json
+import requests
 import urllib
 import urllib2
 from contextlib import contextmanager
@@ -22,36 +23,38 @@ class CkanResource():
         self.key = key
         self.request_params = request_params
 
-    @contextmanager
-    def get_stream(self, offset, limit):
-        """Yield a file-like object represent the data for the current request.
-
-        @param offset: Offset to apply to the query. Will be applied in addition to the offset defined
-                       in the tasks' request parameters (see _merge_limits)
-        @param limit: Limit to apply to the query. Will be applied in addition to the limit defined in the tasks'
-                      request parameters (see _merge_limits)
-        @yield: file-like stream object
+    def _get_response(self, offset, limit, cursor=None):
         """
+        Helper function to request via resource API
+        This is abstracted from self.request to allow testing the response in unit tests
+        :param offset:
+        :param limit:
+        :param cursor:
+        :return:
+        """
+
         (offset, limit) = self._merge_limits(self.request_params.get('offset', None),
                                              self.request_params.get('limit', None),
                                              offset, limit)
+
         request_params = dict([(k, v) for (k, v) in self.request_params.items() if v is not None])
         request_params['offset'] = offset
         request_params['limit'] = limit
+        if cursor:
+            request_params['cursor'] = cursor
+        headers = {}
+        if self.key:
+            headers['Authorization'] = self.key
+        response = requests.post(self.api_url, params=request_params, headers=headers)
         try:
-            request = urllib2.Request(self.api_url)
-            if self.key:
-                request.add_header('Authorization', self.key)
-            response = urllib2.urlopen(request, urllib.quote(json.dumps(request_params)))
-        except urllib2.URLError as e:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
             raise StreamError("Failed fetching URL {}: {}".format(self.api_url, e))
-        if response.code != 200:
-            response.close()
-            raise StreamError("URL {} return status code {}".format(self.api_url, response.code))
-        try:
-            yield response
-        finally:
-            response.close()
+        return response
+
+    def request(self, offset, limit, cursor=None):
+        response = self._get_response(offset, limit, cursor)
+        return response.json()
 
     def _merge_limits(self, base_offset, base_limit, inner_offset, inner_limit):
         """Given data defined by an offset/limit within a dataset, apply an offset/limit within that data.

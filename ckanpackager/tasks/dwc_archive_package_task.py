@@ -31,7 +31,7 @@ class DwcArchivePackageTask(DatastorePackageTask):
         schema['eml'] = (False, None, False)
         return schema
 
-    def _stream_headers(self, input_stream, resource):
+    def _write_headers(self, response, resource):
         """Stream the list of fields and save the headers in the resource.
 
         We construct the structure of the darwin core archive at the same
@@ -46,15 +46,15 @@ class DwcArchivePackageTask(DatastorePackageTask):
         """
         # Create the structure
         archive = DwcArchiveStructure()
-        for field_id in ijson.items(input_stream, 'result.fields.item.id'):
-            if field_id != self.config['DWC_ID_FIELD']:
+        for field in response['result']['fields']:
+            if field['id'] != self.config['DWC_ID_FIELD']:
                 # A single input field can match into multiple destination
                 # term (when using json extension fields). Also multiple
                 # input fields can match into the same destination term
                 # (when using dynamic terms)
-                extensions = self._input_field_to_extension(field_id)
+                extensions = self._input_field_to_extension(field['id'])
                 for ext_field, extension, term in extensions:
-                    archive.add_term(field_id, ext_field, extension, term)
+                    archive.add_term(field['id'], ext_field, extension, term)
 
         # Now prepare all the files we will need
         for extension in archive.extensions():
@@ -64,22 +64,22 @@ class DwcArchivePackageTask(DatastorePackageTask):
             w.writerow(terms)
         return archive
 
-    def _stream_records(self, input_stream, archive, resource):
-        """Stream the records from the input stream to the resource files
+    def _write_records(self, records, archive, resource):
+        """Write the records from the search response to the resource files
 
-        @param input_stream: file-like object representing the input stream
+        @param records: list of records
         @type archive: DwcArchiveStructure
         @type resource: ResourceFile
         @returns: Number of rows read
         """
-        input_rows = 0
         def no_decimal(x):
             if isinstance(x, Decimal):
                 return float(x)
             else:
                 return x
-        for json_row in ijson.items(input_stream, 'result.records.item'):
-            json_row = dict([(k, no_decimal(v)) for (k, v) in json_row.items()])
+
+        for record in records:
+            json_row = dict([(k, no_decimal(v)) for (k, v) in record.items()])
             for extension in archive.extensions():
                 w = resource.get_csv_writer(archive.file_name(extension))
                 # Get field/values relevant for this extension, and expand
@@ -122,8 +122,6 @@ class DwcArchivePackageTask(DatastorePackageTask):
                                 combined[cc_field] = value
                             row.append(json.dumps(combined))
                     w.writerow(row)
-            input_rows += 1
-        return input_rows
 
     def _finalize_resource(self, archive, resource):
         """Finalize the resource before ZIPing it.
@@ -312,4 +310,14 @@ class DwcArchivePackageTask(DatastorePackageTask):
                 words[i+1] = words[i+1].capitalize()
         return "".join(words)
 
+
+if __name__ == '__main__':
+
+    from collections import OrderedDict
+    from ckanpackager.task_setup import config
+
+    params = OrderedDict([('q', u'cat'), ('secret', u'3H16WqQDAmjg'), ('api_url', u'http://192.168.99.1:8000/api/3/action/datastore_search'), ('resource_id', u'5e24bc3e-81c1-43e4-bc60-399edcd90a1f'), ('offset', u'0'), ('email', u'ben@benscott.co.uk')])
+
+    t = DwcArchivePackageTask(params, config)
+    t.run()
 

@@ -132,7 +132,8 @@ class TestDwcArchivePackageTask(object):
                             "format": "row 2 assocmed format 1"
                         }"""
                     }
-                ]
+                ],
+                'total': 2
             }
         }
         return 200, headers, json.dumps(data)

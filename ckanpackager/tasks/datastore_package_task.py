@@ -1,15 +1,12 @@
 import json
-import ijson
 from urlparse import urlparse
 from ckanpackager.lib.ckan_resource import CkanResource
 from ckanpackager.lib.resource_file import ResourceFile
 from ckanpackager.tasks.package_task import PackageTask
 
-
 class CkanFailure(Exception):
     """Exception raised when CKAN returns unsuccessful request"""
     pass
-
 
 class DatastorePackageTask(PackageTask):
     """Represents a datastore packager task."""
@@ -65,18 +62,41 @@ class DatastorePackageTask(PackageTask):
         ckan_resource = CkanResource(self.request_params['api_url'], self.request_params.get('key', None), ckan_params)
         try:
             # Read the datastore fields, and generate the package structure.
-            self.log.info("Fetching field list")
-            with ckan_resource.get_stream(0, 0) as input_stream:
-                fields = self._stream_headers(input_stream, resource)
-                #FIXME: Test for failure
-            # Get the records, page by page
+            self.log.info("Fetching fields")
+            response = ckan_resource.request(0, 0)
+
+            # Write fields to out file as headers
+            fields = self._write_headers(response, resource)
+
+            # If this is a SOLR backend we want to use a cursor
+            # This is much faster than the DB search - and prevents duplicates
+            cursor = None
+            try:
+                if response['result']['_backend'] == 'datasolr':
+                    cursor = '*'
+            except KeyError:
+                pass
+
             start = 0
-            input_rows = -1
-            while input_rows == self.config['PAGE_SIZE'] or input_rows < 0:
-                self.log.info("Processing page ({},{})".format(start, self.config['PAGE_SIZE']))
-                with ckan_resource.get_stream(start, self.config['PAGE_SIZE']) as input_stream:
-                    input_rows = self._stream_records(input_stream, fields, resource)
-                start += input_rows
+            count = 0
+            while True:
+                response = ckan_resource.request(start, self.config['PAGE_SIZE'], cursor)
+                # If we've run out of records, break
+                if not response['result']['records']:
+                    break
+                self._write_records(response['result']['records'], fields, resource)
+                if cursor:
+                    cursor = response['result']['next_cursor']
+                # Start offset - not used for SOLR
+                start += 1
+                count += len(response['result']['records'])
+                try:
+                    response['result']['total']
+                except KeyError:
+                    print response
+                if count >= response['result']['total']:
+                    break
+
             # Finalize the resource
             self._finalize_resource(fields, resource)
             # Zip the file
@@ -84,42 +104,28 @@ class DatastorePackageTask(PackageTask):
         finally:
             resource.clean_work_files()
 
-    def _stream_headers(self, input_stream, resource):
-        """Stream the list of fields and save the headers in the resource.
-
-        @param input_stream: file-like object representing the input stream
-        @param resource: A resource file
-        @type resource: ResourceFile
-        @returns: List (or other structure) representing the fields saved to
-                  the headers, to allow _stream_records to save rows in a
-                  matching format.
-        """
-        fields = []
-        for field_id in ijson.items(input_stream, 'result.fields.item.id'):
-            fields.append(field_id)
+    @staticmethod
+    def _write_headers(response, resource):
+        # Build a list of fields
+        fields = [f['id'] for f in response['result']['fields']]
         w = resource.get_csv_writer('resource.csv')
         w.writerow(fields)
         return fields
 
-    def _stream_records(self, input_stream, fields, resource):
+    @staticmethod
+    def _write_records(records, fields, resource):
         """Stream the records from the input stream to the resource files
-
-        @param input_stream: file-like object representing the input stream
-        @param fields: List (or other structure) representing the fields
-                       as returned by _stream_headers
+        @param records: json dict of records
+        @param fields: List
         @param resource: Resource file
         @type resource: ResourceFile
-        @returns: Number of rows read
         """
-        input_rows = 0
         w = resource.get_csv_writer('resource.csv')
-        for json_row in ijson.items(input_stream, 'result.records.item'):
+        for record in records:
             row = []
             for field_id in fields:
-                row.append(json_row.get(field_id, None))
+                row.append(record.get(field_id, None))
             w.writerow(row)
-            input_rows += 1
-        return input_rows
 
     def _finalize_resource(self, fields, resource):
         """Finalize the resource before ZIPing it.
@@ -127,9 +133,20 @@ class DatastorePackageTask(PackageTask):
         This implementation does nothing - this is available as a hook for
         sub-classes who wish to add other files in the .zip file
 
-        @param fields: List (or other structure) representing the fields
-                       as returned by _stream_headers
+        @param fields: List
         @param resource: The resource we are creating
         @type resource: ResourceFile
         """
         pass
+
+
+if __name__ == '__main__':
+
+    from collections import OrderedDict
+    from ckanpackager.task_setup import config
+
+    params = OrderedDict([('q', u'cat'), ('secret', u'3H16WqQDAmjg'), ('api_url', u'http://192.168.99.1:8000/api/3/action/datastore_search'), ('resource_id', u'5e24bc3e-81c1-43e4-bc60-399edcd90a1f'), ('offset', u'0'), ('email', u'ben@benscott.co.uk')])
+
+    t = DatastorePackageTask(params, config)
+    t.run()
+
