@@ -139,14 +139,3 @@ class DatastorePackageTask(PackageTask):
         """
         pass
 
-
-if __name__ == '__main__':
-
-    from collections import OrderedDict
-    from ckanpackager.task_setup import config
-
-    params = OrderedDict([('q', u'cat'), ('secret', u'3H16WqQDAmjg'), ('api_url', u'http://192.168.99.1:8000/api/3/action/datastore_search'), ('resource_id', u'5e24bc3e-81c1-43e4-bc60-399edcd90a1f'), ('offset', u'0'), ('email', u'ben@benscott.co.uk')])
-
-    t = DatastorePackageTask(params, config)
-    t.run()
-
