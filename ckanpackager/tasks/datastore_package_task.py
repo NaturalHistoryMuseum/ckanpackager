@@ -74,6 +74,7 @@ class DatastorePackageTask(PackageTask):
             try:
                 if response['result']['_backend'] == 'datasolr':
                     cursor = '*'
+                    self.log.info("Using Solr cursor: %s" % self.request_params['api_url'])
             except KeyError:
                 pass
 
