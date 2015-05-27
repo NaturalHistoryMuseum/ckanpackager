@@ -45,6 +45,13 @@ class CkanResource():
         headers = {}
         if self.key:
             headers['Authorization'] = self.key
+
+        # Filters are parsed as a dict - encode to json
+        try:
+            request_params['filters'] = json.dumps(request_params['filters'])
+        except KeyError:
+            pass
+
         response = requests.post(self.api_url, params=request_params, headers=headers)
         try:
             response.raise_for_status()
