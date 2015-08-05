@@ -27,7 +27,7 @@ def run_task(task, request):
  
     @param task: Name of the task. One of package_url,
                  package_dwc_archive or package_datastore
-    @param request: Dictinary containing the request
+    @param request: Dictionary containing the request
     """
     logger = get_task_logger(__name__)
     if task == 'package_url':
