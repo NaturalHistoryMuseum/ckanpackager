@@ -22,7 +22,7 @@ class CkanPackagerStatistics(object):
         """
         self._db = dataset.connect(database_url)
 
-    def log_request(self, resource_id, email, count):
+    def log_request(self, resource_id, email, count=None):
         """Log a new incoming request to the statistics
   
         @param resource_id: The resource id that was requested
