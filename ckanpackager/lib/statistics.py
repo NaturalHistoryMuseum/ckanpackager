@@ -22,8 +22,8 @@ class CkanPackagerStatistics(object):
         """
         self._db = dataset.connect(database_url)
 
-    def log_request(self, resource_id, email):
-        """Log a new incoming requestes to the statistics
+    def log_request(self, resource_id, email, count):
+        """Log a new incoming request to the statistics
   
         @param resource_id: The resource id that was requested
         @param email: The email address that requested the resource
@@ -35,16 +35,18 @@ class CkanPackagerStatistics(object):
         # Increase totals for that resource
         self._increase_totals('requests', resource_id=resource_id)
         resource_match = self._db['requests'].find_one(
-            email=email, 
+            email=email,
             resource_id=resource_id
         )
         if resource_match is None:
             self._increase_totals('emails', resource_id=resource_id)
+
         # Store timestamped request 
         self._db['requests'].insert({
             'timestamp': int(time.time()),
             'resource_id': resource_id,
-            'email': email
+            'email': email,
+            'count': count
         })
             
     def log_error(self, resource_id, email, message):

@@ -84,7 +84,8 @@ class PackageTask(object):
             self._run()
             statistics(self.config['STATS_DB']).log_request(
                 self.request_params['resource_id'],
-                self.request_params['email']
+                self.request_params['email'],
+                self.request_params.get('limit', None)
             )
         except Exception as e:
             statistics(self.config['STATS_DB']).log_error(
