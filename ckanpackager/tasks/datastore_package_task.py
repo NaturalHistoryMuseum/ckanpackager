@@ -78,10 +78,11 @@ class DatastorePackageTask(PackageTask):
             except KeyError:
                 self.log.info("Search type: DB")
 
-            start = 0
+            page = 0
             count = 0
+            max_count = int(self.request_params.get('limit', 0))
             while True:
-                response = ckan_resource.request(start, self.config['PAGE_SIZE'], cursor)
+                response = ckan_resource.request(page, self.config['PAGE_SIZE'], cursor)
                 # If we've run out of records, break
                 if not response['result']['records']:
                     break
@@ -89,8 +90,12 @@ class DatastorePackageTask(PackageTask):
                 if cursor:
                     cursor = response['result']['next_cursor']
                 # Start offset - not used for SOLR
-                start += 1
+                page += 1
                 count += len(response['result']['records'])
+
+                if max_count and count >= max_count:
+                    break
+
                 try:
                     response['result']['total']
                 except KeyError:
