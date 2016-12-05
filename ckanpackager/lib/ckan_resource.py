@@ -23,7 +23,7 @@ class CkanResource():
         self.key = key
         self.request_params = request_params
 
-    def _get_response(self, offset, limit, cursor=None):
+    def _get_response(self, page, page_size, cursor=None):
         """
         Helper function to request via resource API
         This is abstracted from self.request to allow testing the response in unit tests
@@ -32,14 +32,16 @@ class CkanResource():
         :param cursor:
         :return:
         """
-
-        (offset, limit) = self._merge_limits(self.request_params.get('offset', None),
-                                             self.request_params.get('limit', None),
-                                             offset, limit)
-
         request_params = dict([(k, v) for (k, v) in self.request_params.items() if v is not None])
-        request_params['offset'] = offset
-        request_params['limit'] = limit
+        # User has passed in an initial offset in the download request
+        offset_param = int(self.request_params.get('offset', 0))
+        request_params['offset'] = page * page_size + offset_param
+
+        # If user has passed in limit which is less than the page size,
+        # limit the results to that - otherwise use page size
+        limit_param = int(self.request_params.get('limit', 0))
+        request_params['limit'] = limit_param if limit_param < page_size else page_size
+
         if cursor:
             request_params['cursor'] = cursor
         headers = {}
@@ -51,7 +53,6 @@ class CkanResource():
             request_params['filters'] = json.dumps(request_params['filters'])
         except KeyError:
             pass
-
         response = requests.post(self.api_url, params=request_params, headers=headers)
         try:
             response.raise_for_status()
@@ -59,32 +60,6 @@ class CkanResource():
             raise StreamError("Failed fetching URL {}: {}".format(self.api_url, e))
         return response
 
-    def request(self, offset, limit, cursor=None):
-        response = self._get_response(offset, limit, cursor)
+    def request(self, start_offset, page_size, cursor=None):
+        response = self._get_response(start_offset, page_size, cursor)
         return response.json()
-
-    def _merge_limits(self, base_offset, base_limit, inner_offset, inner_limit):
-        """Given data defined by an offset/limit within a dataset, apply an offset/limit within that data.
-
-        So with a base of (100,50) and an inner limit of (10, 200) you would get (110, 40).
-
-        @param base_offset: The base offset (str or int), or None
-        @param base_limit: The base limit (str or int), or None
-        @param inner_offset: The inner limit (int)
-        @param inner_limit: The inner limit (int)
-        @return: A tuple defining (offset, limit) to apply to the original dataset
-        """
-        if base_offset is None:
-            offset = inner_offset
-        else:
-            offset = int(base_offset) + inner_offset
-        if base_limit is None:
-            limit = inner_limit
-        else:
-            limit = int(base_limit) - inner_offset
-            if inner_limit < limit:
-                limit = inner_limit
-        if limit < 0:
-            limit = 0
-            offset = 0
-        return offset, limit
