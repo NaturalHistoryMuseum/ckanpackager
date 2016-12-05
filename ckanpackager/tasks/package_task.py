@@ -8,7 +8,7 @@ from email.mime.text import MIMEText
 from ckanpackager.lib.utils import BadRequestError
 from ckanpackager.lib.resource_file import ResourceFile
 from ckanpackager.lib.statistics import statistics
-
+from raven import Client
 
 class PackageTask(object):
     """Base class for DatastorePackageTask and UrlPackageTask
@@ -31,6 +31,7 @@ class PackageTask(object):
     """
     def __init__(self, params, config):
         self.config = config
+        self.sentry = Client(self.config.get('SENTRY_DSN'))
         self.time = str(datetime.now())
         self.request_params = {}
         self.log = logging.getLogger(__name__)
@@ -93,6 +94,7 @@ class PackageTask(object):
                 self.request_params['email'],
                 traceback.format_exc()
             )
+            self.sentry.captureException()
             raise e
 
     def _run(self):
