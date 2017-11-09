@@ -40,7 +40,7 @@ class CkanResource():
         # If user has passed in limit which is less than the page size,
         # limit the results to that - otherwise use page size
         limit_param = int(self.request_params.get('limit', 0))
-        request_params['limit'] = limit_param if limit_param < page_size else page_size
+        request_params['limit'] = limit_param if limit_param and limit_param < page_size else page_size
 
         if cursor:
             request_params['cursor'] = cursor
