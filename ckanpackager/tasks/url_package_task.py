@@ -12,7 +12,8 @@ class UrlPackageTask(PackageTask):
         return {
             'resource_id': (True, None),
             'email': (True, None),
-            'resource_url': (True, None)
+            'resource_url': (True, None),
+            'key': (False, None)
         }
 
     def host(self):
@@ -28,9 +29,14 @@ class UrlPackageTask(PackageTask):
 
         @return: The ZIP file name
         """
+        headers = {}
+        if 'key' in self.request_params:
+            headers['Authorization'] = self.request_params['key']
         try:
             output_stream = resource.get_writer()
-            input_stream = urllib2.urlopen(self.request_params['resource_url'])
+            request = urllib2.Request(self.request_params['resource_url'],
+                                      headers=headers)
+            input_stream = urllib2.urlopen(request)
             self.log.info("Fetching and saving file.")
             shutil.copyfileobj(input_stream, output_stream)
             resource.create_zip(self.config['ZIP_COMMAND'])
