@@ -83,3 +83,19 @@ class TestUrlPackageTask(object):
         r = DummyResource()
         self._task.create_zip(r)
         assert_true(r.clean_invoked)
+
+    @httpretty.activate
+    def test_request_authorization(self):
+        """Ensure an authorization header is added"""
+        apikey = 'some_api_key'
+        task = UrlPackageTask({
+            'resource_id': 'the-resource-id',
+            'resource_url': 'http://example.com/the/resource/url.txt',
+            'email': 'someone@0.0.0.0',
+            'key': apikey
+        }, self._config)
+        r = DummyResource()
+        task.create_zip(r)
+        assert_true(r.clean_invoked)
+        headers = dict(httpretty.last_request().headers)
+        assert_equals(headers['authorization'], apikey)
