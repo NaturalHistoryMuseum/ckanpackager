@@ -120,7 +120,7 @@ class DwcArchivePackageTask(DatastorePackageTask):
                                     pass
                                 cc_field = self._camel_case(term_field)
                                 combined[cc_field] = value
-                            row.append(json.dumps(combined))
+                            row.append(json.dumps(combined, ensure_ascii=False).encode('utf8'))
                     w.writerow(row)
 
     def _finalize_resource(self, archive, resource):
