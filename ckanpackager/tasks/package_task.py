@@ -40,12 +40,12 @@ class PackageTask(object):
             schema['email'] = (True, None)
         if 'resource_id' not in schema:
             schema['resource_id'] = (True, None)
-        for field, (required, processor, forward) in schema.items():
-            if required and field not in params:
+        for field, definition in schema.items():
+            if definition[0] and field not in params:
                 raise BadRequestError("Parameter {} is required".format(field))
             if field in params:
-                if processor is not None:
-                    self.request_params[field] = processor(params.get(field, None))
+                if definition[1] is not None:
+                    self.request_params[field] = definition[1](params.get(field, None))
                 else:
                     self.request_params[field] = params.get(field, None)
 
