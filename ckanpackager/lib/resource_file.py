@@ -92,7 +92,7 @@ class ResourceFile():
 
         return name
 
-    def get_writer(self, name):
+    def get_writer(self, name=None):
         """Get a writer for the given file name in the resource.
 
         Note that writers are automatically closed when clean_work_files is
@@ -101,6 +101,7 @@ class ResourceFile():
         @param name: Name of file to create, or None
         """
         self._create_working_folder()
+        name = self.clean_name(name)
         if name not in self.writers:
             self.writers[name] = open(os.path.join(self.working_folder, name), 'wb')
         return self.writers[name]
@@ -118,7 +119,6 @@ class ResourceFile():
 
         @param name: Name of file to create, or None
         """
-        name = self.clean_name(name)
         return unicodecsv.writer(
             self.get_writer(name),
             encoding='utf-8',
