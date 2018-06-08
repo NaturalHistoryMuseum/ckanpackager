@@ -40,7 +40,7 @@ class PackageTask(object):
             schema['email'] = (True, None)
         if 'resource_id' not in schema:
             schema['resource_id'] = (True, None)
-        for (field, definition) in schema.items():
+        for field, definition in schema.items():
             if definition[0] and field not in params:
                 raise BadRequestError("Parameter {} is required".format(field))
             if field in params:

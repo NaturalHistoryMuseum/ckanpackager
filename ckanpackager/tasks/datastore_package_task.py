@@ -26,7 +26,8 @@ class DatastorePackageTask(PackageTask):
             'limit': (False, None, True),
             'offset': (False, None, True),
             'fields': (False, None, True),
-            'sort': (False, None, True)
+            'sort': (False, None, True),
+            'format': (False, None, False),
         }
 
     def host(self):

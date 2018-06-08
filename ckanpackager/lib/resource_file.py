@@ -57,20 +57,23 @@ class ResourceFile():
         """
         self.zip_file_name = zip_file_name
 
-    def get_writer(self, name=None):
-        """Get a writer for the given file name in the resource.
+    def get_delimiter(self):
+        mapping = {
+            'csv': ',',
+            'tsv': '\t',
+        }
+        return mapping.get(self.request_params.get('format', 'csv'))
 
-        If name is not defined, this will:
-        - Use the base file name defined by the 'resource_url' request
-          parameter if present;
-        - Use the resource id if not.
-
-        Note that writers are automatically closed when clean_work_files is
-        called.
-
-        @param name: Name of file to create, or None
+    def clean_name(self, name=None):
         """
-        self._create_working_folder()
+        If name is not defined, this will:
+            - Use the base file name defined by the 'resource_url' request
+              parameter if present;
+            - Use the resource id if not.
+
+        :param name:
+        :return: the name
+        """
         if name is None:
             if 'resource_url' in self.request_params:
                 url = urlparse(self.request_params['resource_url'])
@@ -79,6 +82,26 @@ class ResourceFile():
                     name = parts.pop()
             if name is None:
                 name = self.request_params['resource_id']
+
+        if name.endswith('.csv'):
+            mapping = {
+                'csv': '.csv',
+                'tsv': '.tsv',
+            }
+            name = name[:-4] + mapping[self.request_params.get('format', 'csv')]
+
+        return name
+
+    def get_writer(self, name=None):
+        """Get a writer for the given file name in the resource.
+
+        Note that writers are automatically closed when clean_work_files is
+        called.
+
+        @param name: Name of file to create, or None
+        """
+        self._create_working_folder()
+        name = self.clean_name(name)
         if name not in self.writers:
             self.writers[name] = open(os.path.join(self.working_folder, name), 'wb')
         return self.writers[name]
@@ -99,7 +122,7 @@ class ResourceFile():
         return unicodecsv.writer(
             self.get_writer(name),
             encoding='utf-8',
-            delimiter=',',
+            delimiter=self.get_delimiter(),
             quotechar='"',
             lineterminator="\n"
         )
