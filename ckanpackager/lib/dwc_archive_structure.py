@@ -14,7 +14,7 @@ class DwcArchiveStructure(object):
         if name not in self._extensions:
             self._extensions[name] = OrderedDict()
 
-    def add_term(self, input_field, ext_field, extension, term_name):
+    def add_term(self, input_field, ext_field, extension, term_name, formatter):
         """Add a new term to the archive structure
 
         @param input_field: The input field matching this term
@@ -22,12 +22,13 @@ class DwcArchiveStructure(object):
                           that
         @param extension: The extension in the archive structure
         @param term_name: The field name in the archive structure
+        @param formatter: The formatter for this field, if there is one, if not this will be None
         """
         self.add_extension(extension)
         if term_name not in self._extensions[extension]:
             self._extensions[extension][term_name] = []
-        if (input_field, ext_field) not in self._extensions[extension][term_name]:
-            self._extensions[extension][term_name].append((input_field, ext_field))
+        if (input_field, ext_field, formatter) not in self._extensions[extension][term_name]:
+            self._extensions[extension][term_name].append((input_field, ext_field, formatter))
 
     def extensions(self):
         """Return the list of extensions
