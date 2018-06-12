@@ -37,6 +37,12 @@ DWC_EXTENSION_FIELDS = {
             'title': '',
             'license': '',
             'rightsHolder': ''
+        },
+        'mappings': {
+            'format': 'mime'
+        },
+        'formatters': {
+            'format': lambda v: 'image/{}'.format(v) if v else v
         }
     }
 }

@@ -53,8 +53,8 @@ class DwcArchivePackageTask(DatastorePackageTask):
                 # input fields can match into the same destination term
                 # (when using dynamic terms)
                 extensions = self._input_field_to_extension(field['id'])
-                for ext_field, extension, term in extensions:
-                    archive.add_term(field['id'], ext_field, extension, term)
+                for ext_field, extension, term, formatter in extensions:
+                    archive.add_term(field['id'], ext_field, extension, term, formatter)
 
         # Now prepare all the files we will need
         for extension in archive.extensions():
@@ -94,12 +94,14 @@ class DwcArchivePackageTask(DatastorePackageTask):
                         # Get all the input fields that go into this output field
                         term_fields = archive.term_fields(extension, term)
                         values = {}
-                        for (term_field, ext_term_field) in term_fields:
+                        for (term_field, ext_term_field, formatter) in term_fields:
                             if ext_term_field:
                                 inner_name = "{}_{}".format(term_field, ext_term_field)
                                 j_val = ext_row[term_field][index]
                                 if j_val:
-                                    values[inner_name] = j_val.get(ext_term_field, None)
+                                    value = j_val.get(ext_term_field, None)
+                                    # apply a formatter to the value if there is one
+                                    values[inner_name] = formatter(value) if formatter else value
                                 else:
                                     values[inner_name] = None
                             else:
@@ -197,10 +199,10 @@ class DwcArchivePackageTask(DatastorePackageTask):
         # fields/values. Decode JSON values for extended term fields.
         for term in archive.terms(extension):
             term_fields = archive.term_fields(extension, term)
-            for (term_field, ext_term_field) in term_fields:
-                if (term_field, ext_term_field) in seen:
+            for (term_field, ext_term_field, formatter) in term_fields:
+                if (term_field, ext_term_field, formatter) in seen:
                     continue
-                seen.append((term_field, ext_term_field))
+                seen.append((term_field, ext_term_field, formatter))
                 if ext_term_field:
                     try:
                         result[term_field] = json.loads(json_row[term_field])
@@ -267,7 +269,11 @@ class DwcArchivePackageTask(DatastorePackageTask):
                     extension_field,
                     self._dwc_extension_fields[field]
                 )
-                result = result + [(extension_field, v[1], v[2]) for v in sub_result]
+                # retrieve any mappings from term name to field name, defaults to the extension_field
+                ext_name = self.config['DWC_EXTENSION_FIELDS'][field]['mappings'].get(extension_field, extension_field)
+                # retrieve any formatters for the term name, defaulting to None
+                formatter = self.config['DWC_EXTENSION_FIELDS'][field]['formatters'].get(extension_field, None)
+                result = result + [(ext_name, v[1], v[2], formatter) for v in sub_result]
             return result
 
         # Handle core fields
@@ -285,7 +291,7 @@ class DwcArchivePackageTask(DatastorePackageTask):
                 term = dynamic_term
         if term:
             extension = terms.term_extension(term)
-            return [(None, extension, term)]
+            return [(None, extension, term, None)]
         else:
             return []
 

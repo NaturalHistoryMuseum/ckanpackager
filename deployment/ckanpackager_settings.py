@@ -116,6 +116,18 @@ DWC_EXTENSION_FIELDS = {
             'title': '',
             'license': 'http://creativecommons.org/licenses/by/4.0/',
             'rightsHolder': ''
+        },
+        # this defines a mapping from DwC extension term name to the field name used
+        # in the datastore search result (i.e. associatedMedia.mime -> format
+        'mappings': {
+            # in the associatedMedia field that comes back from solr, the
+            # format is stored under the key mime
+            'format': 'mime'
+        },
+        # this defines formatting functions that should be used on any given terms
+        'formatters': {
+            # the format needs to start with image/
+            'format': lambda v: 'image/{}'.format(v) if v else v
         }
     }
 }
