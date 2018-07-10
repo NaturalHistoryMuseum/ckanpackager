@@ -170,7 +170,7 @@ class DwcArchivePackageTask(DatastorePackageTask):
             eml_writer.write(self.request_params['eml'].format(
               package_id=uuid4(),
               pub_date=strftime('%Y-%m-%d'),
-              date_stamp=strftime('%Y-%m-%dT%H:%M:%S+0000', gmtime())
+              date_stamp=strftime('%Y-%m-%dT%H:%M:%SZ', gmtime())
             ))
 
     def _row_for_extension(self, archive, extension, json_row):
