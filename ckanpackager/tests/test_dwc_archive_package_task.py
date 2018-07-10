@@ -75,7 +75,13 @@ class TestDwcArchivePackageTask(object):
                     'fields': OrderedDict(
                         type='assocmed default type',
                         format='assocmed default format'
-                    )
+                    ),
+                    'mappings': {
+                        'format': 'mime'
+                    },
+                    'formatters': {
+                        'format': lambda v: 'image/{}'.format(v) if v else v
+                    }
                 }
             }
         }
@@ -110,10 +116,10 @@ class TestDwcArchivePackageTask(object):
                         'associatedMedia': """[
                             {
                                 "type": "row 1 assocmed type 1",
-                                "format": "row 1 assocmed format 1"
+                                "mime": "row 1 assocmed format 1"
                             },
                             {
-                                "format": "row 1 assocmed format 2",
+                                "mime": "row 1 assocmed format 2",
                                 "type": "row 1 assocmed type 2"
                             },
                             {}
@@ -129,7 +135,7 @@ class TestDwcArchivePackageTask(object):
                         'lesserKnownField': 'row 2 lesser known field',
                         'associatedMedia': """{
                             "type": "row 2 assocmed type 1",
-                            "format": "row 2 assocmed format 1"
+                            "mime": "row 2 assocmed format 1"
                         }"""
                     }
                 ],
@@ -246,16 +252,16 @@ class TestDwcArchivePackageTask(object):
         self._task.create_zip(r)
         assert_equals(5, len(r.csv_files['multimedia.csv']))
         assert_equals(r.csv_files['multimedia.csv'][1], [
-            '1', 'row 1 assocmed type 1', 'row 1 assocmed format 1'
+            '1', 'row 1 assocmed type 1', 'image/row 1 assocmed format 1'
         ])
         assert_equals(r.csv_files['multimedia.csv'][2], [
-            '1', 'row 1 assocmed type 2', 'row 1 assocmed format 2'
+            '1', 'row 1 assocmed type 2', 'image/row 1 assocmed format 2'
         ])
         assert_equals(r.csv_files['multimedia.csv'][3], [
             '1', 'assocmed default type', 'assocmed default format'
         ])
         assert_equals(r.csv_files['multimedia.csv'][4], [
-            '2', 'row 2 assocmed type 1', 'row 2 assocmed format 1'
+            '2', 'row 2 assocmed type 1', 'image/row 2 assocmed format 1'
         ])
 
     @httpretty.activate
