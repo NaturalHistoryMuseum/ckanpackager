@@ -48,6 +48,11 @@ class DummyResource(object):
     def clean_work_files(self):
         self.clean_invoked = True
 
+    def count_lines(self, name):
+        # always return more than 1 line
+        return 100
+
+
 class TestDwcArchivePackageTask(object):
     def setUp(self):
         """Setup up test config&folders"""
