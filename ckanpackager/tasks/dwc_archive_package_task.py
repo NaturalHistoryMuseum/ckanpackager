@@ -100,8 +100,11 @@ class DwcArchivePackageTask(DatastorePackageTask):
                                 j_val = ext_row[term_field][index]
                                 if j_val:
                                     value = j_val.get(ext_term_field, None)
-                                    # apply a formatter to the value if there is one
-                                    values[inner_name] = formatter(value) if formatter else value
+                                    if value:
+                                        # apply a formatter to the value if there is one
+                                        values[inner_name] = formatter(value) if formatter else value
+                                    else:
+                                        values[inner_name] = j_val.get(term, None)
                                 else:
                                     values[inner_name] = None
                             else:

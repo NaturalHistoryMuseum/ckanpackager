@@ -27,19 +27,20 @@ class CkanResource():
         """
         Helper function to request via resource API
         This is abstracted from self.request to allow testing the response in unit tests
+
         :param offset:
         :param limit:
         :param cursor:
         :return:
         """
-        request_params = dict([(k, v) for (k, v) in self.request_params.items() if v is not None])
+        request_params = {k: v for k, v in self.request_params.items() if v is not None}
         # User has passed in an initial offset in the download request
-        offset_param = int(self.request_params.get('offset', 0))
+        offset_param = int(request_params.get('offset', 0))
         request_params['offset'] = page * page_size + offset_param
 
         # If user has passed in limit which is less than the page size,
         # limit the results to that - otherwise use page size
-        limit_param = int(self.request_params.get('limit', 0))
+        limit_param = int(request_params.get('limit', 0))
         request_params['limit'] = limit_param if limit_param and limit_param < page_size else page_size
 
         if cursor:

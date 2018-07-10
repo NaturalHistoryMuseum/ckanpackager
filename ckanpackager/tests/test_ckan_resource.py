@@ -45,7 +45,7 @@ class TestCkanResource:
         httpretty.register_uri(httpretty.POST, 'http://somewhere.com/test')
         r = CkanResource('http://somewhere.com/test', None, {'offset': None, 'limit': None, 'carrot': 'cake'})
         s = r._get_response(10, 200)
-        self._assert_params_equals(httpretty.last_request().path, {'offset': 10, 'limit': 200, 'carrot': 'cake'})
+        self._assert_params_equals(httpretty.last_request().path, {'offset': 2000, 'limit': 200, 'carrot': 'cake'})
 
 
     @httpretty.activate
@@ -54,7 +54,7 @@ class TestCkanResource:
         httpretty.register_uri(httpretty.POST, 'http://somewhere.com/test')
         r = CkanResource('http://somewhere.com/test', None, {'offset': None, 'limit': None})
         s = r._get_response(10, 200)
-        self._assert_params_equals(httpretty.last_request().path, {'offset': 10, 'limit': 200})
+        self._assert_params_equals(httpretty.last_request().path, {'offset': 2000, 'limit': 200})
 
 
     def _assert_params_equals(self, url, param_dict):
@@ -75,7 +75,7 @@ class TestCkanResource:
         httpretty.register_uri(httpretty.POST, 'http://somewhere.com/test')
         r = CkanResource('http://somewhere.com/test', None, {'offset': 100, 'limit': 100})
         r._get_response(10, 200)
-        self._assert_params_equals(httpretty.last_request().path, {'offset': 110, 'limit': 90})
+        self._assert_params_equals(httpretty.last_request().path, {'offset': 2100, 'limit': 100})
 
     @httpretty.activate
     def test_request_limit_inner_smaller(self):
@@ -83,7 +83,7 @@ class TestCkanResource:
         httpretty.register_uri(httpretty.POST, 'http://somewhere.com/test')
         r = CkanResource('http://somewhere.com/test', None, {'offset': 100, 'limit': 100})
         r._get_response(10, 20)
-        self._assert_params_equals(httpretty.last_request().path, {'offset': 110, 'limit': 20})
+        self._assert_params_equals(httpretty.last_request().path, {'offset': 300, 'limit': 20})
 
     @httpretty.activate
     def test_request_limit_overflow(self):
@@ -91,7 +91,7 @@ class TestCkanResource:
         httpretty.register_uri(httpretty.POST, 'http://somewhere.com/test')
         r = CkanResource('http://somewhere.com/test', None, {'offset': 100, 'limit': 100})
         r._get_response(200, 20)
-        self._assert_params_equals(httpretty.last_request().path, {'offset': 0, 'limit': 0})
+        self._assert_params_equals(httpretty.last_request().path, {'offset': 4100, 'limit': 20})
 
     @httpretty.activate
     def test_request_authorization(self):
