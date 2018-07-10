@@ -57,6 +57,44 @@ class ResourceFile():
         """
         self.zip_file_name = zip_file_name
 
+    def count_lines(self, name):
+        """
+        Count the number of lines in the file and return the number. Empty lines are ignored.
+
+        :param name: the name of the file
+        :return: the number of lines in the file. 0 is returned if the file doesn't exist
+        """
+        name = self.clean_name(name)
+
+        # ensure all data has been flushed from the writer for this file before we attempt to count
+        if name in self.writers and not self.writers[name].closed:
+            self.writers[name].flush()
+
+        full_path = os.path.join(self.working_folder, name)
+        if os.path.exists(full_path):
+            with open(full_path, 'r') as f:
+                # count the number of lines, ignoring the blank ones
+                return len([line for line in f.readlines() if line.strip()])
+        return 0
+
+    def delete(self, name):
+        """
+        Deletes the file with the given name and closes the writer for it (if there is one).
+
+        :param name: the name of the file
+        """
+        name = self.clean_name(name)
+
+        # ensure all data has been flushed from the writer for this file and close it
+        if name in self.writers and not self.writers[name].closed:
+            self.writers[name].flush()
+            self.writers[name].close()
+
+        full_path = os.path.join(self.working_folder, name)
+        # if the file exists, remove it
+        if os.path.exists(full_path):
+            os.remove(full_path)
+
     def get_delimiter(self):
         mapping = {
             'csv': ',',

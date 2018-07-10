@@ -136,6 +136,15 @@ class DwcArchivePackageTask(DatastorePackageTask):
         if 'eml' in self.request_params:
             x_meta.attrib['metadata'] = 'eml.xml'
         for extension in archive.extensions():
+            filename = archive.file_name(extension)
+            # only include the extension xml in the meta file if the file has contents
+            line_count = resource.count_lines(filename)
+            # no lines or just the header means the file is empty
+            if line_count == 0 or line_count == 1:
+                # delete it and then skip modifying the xml
+                resource.delete(filename)
+                continue
+
             if self._dwc_core_terms.is_core_extension(extension):
                 x_section = etree.SubElement(x_meta, 'core')
             else:
@@ -153,7 +162,7 @@ class DwcArchivePackageTask(DatastorePackageTask):
             x_section.attrib['rowType'] = terms.row_type(extension)
             x_files = etree.SubElement(x_section, 'files')
             x_location = etree.SubElement(x_files, 'location')
-            x_location.text = archive.file_name(extension)
+            x_location.text = filename
             if self._dwc_core_terms.is_core_extension(extension):
                 x_id = etree.SubElement(x_section, 'id')
             else:
