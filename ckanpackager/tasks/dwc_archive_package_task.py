@@ -139,7 +139,7 @@ class DwcArchivePackageTask(DatastorePackageTask):
         if 'eml' in self.request_params:
             x_meta.attrib['metadata'] = 'eml.xml'
         for extension in archive.extensions():
-            filename = archive.file_name(extension)
+            filename = resource.clean_name(archive.file_name(extension))
             # only include the extension xml in the meta file if the file has contents
             line_count = resource.count_lines(filename)
             # no lines or just the header means the file is empty

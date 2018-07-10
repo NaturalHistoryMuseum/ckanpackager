@@ -52,6 +52,9 @@ class DummyResource(object):
         # always return more than 1 line
         return 100
 
+    def clean_name(self, name):
+        return name
+
 
 class TestDwcArchivePackageTask(object):
     def setUp(self):
