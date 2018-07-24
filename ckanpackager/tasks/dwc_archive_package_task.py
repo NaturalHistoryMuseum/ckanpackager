@@ -1,4 +1,6 @@
 import json
+import time
+
 import ijson
 from decimal import Decimal
 from lxml import etree
@@ -29,6 +31,7 @@ class DwcArchivePackageTask(DatastorePackageTask):
         """
         schema = super(DwcArchivePackageTask, self).schema()
         schema['eml'] = (False, None, False)
+        schema['for_gbif'] = (False, None, False)
         return schema
 
     def _write_headers(self, response, resource):
@@ -184,6 +187,14 @@ class DwcArchivePackageTask(DatastorePackageTask):
               pub_date=strftime('%Y-%m-%d'),
               date_stamp=strftime('%Y-%m-%dT%H:%M:%SZ', gmtime())
             ))
+        # this parameter indicates that this archive is going to be used
+        # for a gbif update. Updating the gbif archive is automatic and
+        # therefore we include this special file to aid the process of
+        # determining which zip is the gbif zip and which ones aren't
+        if 'for_gbif' in self.request_params:
+            gbif_writer = resource.get_writer('gbif.json')
+            # add something to the file so that it's not just empty
+            gbif_writer.write(json.dumps({'time': time.time()}))
 
     def _row_for_extension(self, archive, extension, json_row):
         """ Return an input row with the fields relevant to an extension
