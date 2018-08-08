@@ -30,7 +30,8 @@ class UrlPackageTask(PackageTask):
         """
         try:
             output_stream = resource.get_writer()
-            input_stream = urllib2.urlopen(self.request_params['resource_url'])
+            # use a 30 second timeout to stop us hanging forever if the url is unresponsive
+            input_stream = urllib2.urlopen(self.request_params['resource_url'], timeout=30)
             self.log.info("Fetching and saving file.")
             shutil.copyfileobj(input_stream, output_stream)
             resource.create_zip(self.config['ZIP_COMMAND'])
