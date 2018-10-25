@@ -303,6 +303,16 @@ SECRET = '8ba6d280d4ce9a416e9b604f3f0ebb'
 # This is opened multiple times, so you can not use sqlite:///:memory:
 STATS_DB = 'sqlite:////var/lib/ckanpackager/stats.db'
 
+# if enabled, email addresses are hashed before storage so that their identities remain anonymous
+# but they are still uniquely identifiable. This affects the `requests` and `errors` tables
+# respecively, where the hashed email is stored in the `email` column. In the `requests` table an
+# additional column will be created if this setting is turned on, specifically the `domain` column
+# which holds the domain part of the email address to allow grouping of the data by source
+# institution for example. When switching this setting from False (or non-existant) to True it is
+# necessary to run the anonymize migration script first whilst the server is offline, see
+# anonymze.py.
+ANONYMIZE_EMAILS = False
+
 # Celery (message queue) broker. See http://celery.readthedocs.org/en/latest/getting-started/first-steps-with-celery.html#choosing-a-broker
 # Defaults to 'redis://localhost:6379/0' . To test this (but not for production)
 # you can use sqlite with 'sqla+sqlite:////tmp/celery.db'
