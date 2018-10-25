@@ -409,8 +409,3 @@ DWC_EXTENSION_FIELDS = {
     }
 }
 ```
-
-TODO
-----
-
-Set up GBIF to run on cron.  Check if data created is after last import.  If it is, then recreate
