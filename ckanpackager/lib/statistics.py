@@ -136,61 +136,61 @@ class CkanPackagerStatistics(object):
             'message': message
         })
 
-    def get_requests(self, start=0, count=100, **kargs):
+    def get_requests(self, start=0, count=100, **kwargs):
         """Return requests as a list of dictionaries
 
         @param start: start of the query
         @param count: Number of requests to return
-        @param **kargs: conditions
+        @param **kwargs: conditions
         @returns: List of rows (as dictionaries)
         """
         if self.anonymize:
-            anonymize_kwargs(kargs)
+            anonymize_kwargs(kwargs)
 
         result = []
         iterator = self._db['requests'].find(
             _offset=start,
             _limit=count,
             order_by='-timestamp',
-            **kargs
+            **kwargs
         )
         for row in iterator:
             del row['id']
             result.append(row)
         return result
 
-    def get_errors(self, start=0, count=100, **kargs):
+    def get_errors(self, start=0, count=100, **kwargs):
         """Return errors as a list of dicts
 
         @param start: start of the query
         @param count: number of requests to return
-        @param **kargs: conditions
+        @param **kwargs: conditions
         @returns: List of rows (as dictionaries)
         """
         if self.anonymize:
-            anonymize_kwargs(kargs)
+            anonymize_kwargs(kwargs)
 
         result = []
         iterator = self._db['errors'].find(
             _offset=start,
             _limit=count,
             order_by='-timestamp',
-            **kargs
+            **kwargs
         )
         for row in iterator:
             del row['id']
             result.append(row)
         return result
 
-    def get_totals(self, **kargs):
+    def get_totals(self, **kwargs):
         """Return the overall stastitics (the totals)
 
-        @param **kargs: conditions on the totals table
+        @param **kwargs: conditions on the totals table
         @returns: Dictionary of rows (as dictionaries), indexed by the resource
                   id.
         """
         totals = {}
-        for row in self._db['totals'].find(**kargs):
+        for row in self._db['totals'].find(**kwargs):
             totals[row['resource_id']] = {
                 'emails': row['emails'],
                 'errors': row['errors'],
@@ -198,13 +198,13 @@ class CkanPackagerStatistics(object):
             }
         return totals
  
-    def _increase_totals(self, counter, **kargs):
+    def _increase_totals(self, counter, **kwargs):
         """Increase the given counter
        
         @param counter: Name of the counter
-        @param **kargs: conditions
+        @param **kwargs: conditions
         """
-        r = self._db['totals'].find_one(**kargs)
+        r = self._db['totals'].find_one(**kwargs)
         if r is None:
             r = {
                 'resource_id': '*',
@@ -212,7 +212,7 @@ class CkanPackagerStatistics(object):
                 'requests': 0,
                 'emails': 0
             }
-            for key in kargs:
-                r[key] = kargs[key]
+            for key in kwargs:
+                r[key] = kwargs[key]
         r[counter] += 1
-        self._db['totals'].upsert(r, kargs.keys())
+        self._db['totals'].upsert(r, kwargs.keys())
