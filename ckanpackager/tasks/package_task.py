@@ -77,19 +77,21 @@ class PackageTask(object):
 
     def run(self, logger=None):
         """Run the task."""
+        # create a stats object for database access
+        stats = statistics(self.config['STATS_DB'], self.config.get(u'ANONYMIZE_EMAILS'))
         try:
             if logger is not None:
                 self.log = logger
             else:
                 self.log = logging.getLogger(__name__)
             self._run()
-            statistics(self.config['STATS_DB']).log_request(
+            stats.log_request(
                 self.request_params['resource_id'],
                 self.request_params['email'],
                 self.request_params.get('limit', None)
             )
         except Exception as e:
-            statistics(self.config['STATS_DB']).log_error(
+            stats.log_error(
                 self.request_params['resource_id'],
                 self.request_params['email'],
                 traceback.format_exc()

@@ -3,7 +3,6 @@ import time
 
 import bcrypt
 import dataset
-from flask import current_app
 
 
 def extract_domain(email_address):
@@ -57,27 +56,31 @@ def anonymize_kwargs(kwargs):
         kwargs['email'] = anonymize_email(kwargs['email'])
 
 
-def statistics(database_url):
+def statistics(database_url, anonymize):
     """Create a new CkanPackagerStatistics object and return it.
 
     This is useful for one-liners: statistics(db).log_request(request)
 
     @param database_url: database url as per
            http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls
+    @param anonymize: boolean indicating whether the email addresses in the database should be
+                      treated anonymously
     """
-    return CkanPackagerStatistics(database_url)
+    return CkanPackagerStatistics(database_url, anonymize)
 
 
 class CkanPackagerStatistics(object):
 
-    def __init__(self, database_url):
+    def __init__(self, database_url, anonymize):
         """Class used to track application statistics.
 
         @param database_url: database url as per 
                http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls
+        @param anonymize: boolean indicating whether the email addresses in the database should be
+                          treated anonymously
         """
         self._db = dataset.connect(database_url)
-        self.anonymize = current_app.config.get(u'ANONYMIZE_EMAILS', False)
+        self.anonymize = anonymize
 
     def log_request(self, resource_id, email, count=None):
         """Log a new incoming request to the statistics

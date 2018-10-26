@@ -5,7 +5,7 @@ from ckanpackager.lib.statistics import CkanPackagerStatistics, statistics
 class TestStatistics(object):
     def setUp(self):
         """Create a statistics object"""
-        self._d = CkanPackagerStatistics('sqlite:///:memory:')
+        self._d = CkanPackagerStatistics('sqlite:///:memory:', False)
 
     def test_log_request(self):
         """Test that requests are logged"""
@@ -179,5 +179,5 @@ class TestStatistics(object):
 
     def test_statistics_shortcut(self):
         """Check that the 'statistics' shortcut returns an object as expected"""
-        o = statistics('sqlite:///:memory:')
+        o = statistics('sqlite:///:memory:', False)
         assert_equals(CkanPackagerStatistics, type(o))

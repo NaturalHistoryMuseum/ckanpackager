@@ -51,6 +51,7 @@ class TestPackageTask(object):
             'STORE_DIRECTORY': tempfile.mkdtemp(),
             'TEMP_DIRECTORY': tempfile.mkdtemp(),
             'STATS_DB': 'sqlite:///' + os.path.join(self._temp_db_folder, 'db'),
+            'ANONYMIZE_EMAILS': False,
             'CACHE_TIME': 60*60*24,
             'EMAIL_FROM': '{resource_id}-{zip_file_name}-{ckan_host}-from',
             'EMAIL_BODY': '{resource_id};{zip_file_name};{ckan_host} body',
@@ -197,7 +198,7 @@ class TestPackageTask(object):
             'carrot': 'cake'
         }, self._config)
         t.run()
-        stats = CkanPackagerStatistics(self._config['STATS_DB'])
+        stats = CkanPackagerStatistics(self._config['STATS_DB'], self._config['ANONYMIZE_EMAILS'])
         requests = stats.get_requests()
         assert_equals(1, len(requests))
         assert_equals('the-resource-id', requests[0]['resource_id'])
@@ -212,7 +213,7 @@ class TestPackageTask(object):
         }, self._config)
         with assert_raises(Exception) as context:
             t.run()
-        stats = CkanPackagerStatistics(self._config['STATS_DB'])
+        stats = CkanPackagerStatistics(self._config['STATS_DB'], self._config['ANONYMIZE_EMAILS'])
         errors = stats.get_errors()
         assert_equals(1, len(errors))
         assert_equals('the-resource-id', errors[0]['resource_id'])
