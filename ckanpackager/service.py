@@ -34,7 +34,7 @@ def run():
     global app
     app.run(
         host=app.config['HOST'],
-        port=app.config['PORT'],
+        port=int(app.config['PORT']),
         threaded=False,
         processes=1,
         debug=True,
