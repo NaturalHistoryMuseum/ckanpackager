@@ -7,19 +7,25 @@ import tempfile
 from nose.tools import assert_raises, assert_equals, assert_true
 from ckanpackager.lib.utils import BadRequestError
 from ckanpackager.tasks.datastore_package_task import DatastorePackageTask
-from ckanpackager.tests.test_ckan_resource import url_get_params
 
 
 class FakeCSVWriter(object):
-    """ A Fake CSV Writer"""
+    """
+    A Fake CSV Writer
+    """
+
     def __init__(self, rows):
         self.rows = rows
 
     def writerow(self, row):
         self.rows.append(row)
 
+
 class DummyResource(object):
-    """Fake Resourcefile object """
+    """
+    Fake Resourcefile object
+    """
+
     def __init__(self):
         self.rows = []
         self.create_invoked = False
@@ -39,8 +45,11 @@ class DummyResource(object):
 
 
 class TestDatastorePackageTask(object):
+
     def setUp(self):
-        """Setup up test config&folders"""
+        """
+        Setup up test config&folders
+        """
         self._config = {
             'ZIP_COMMAND': "/usr/bin/zip -j {output} {input}",
             'PAGE_SIZE': 3,
@@ -55,50 +64,51 @@ class TestDatastorePackageTask(object):
             'api_url': 'http://example.com/datastore/search'
         }, self._config)
 
-    def _ckan_response(self, request, uri, headers):
-        parameters = url_get_params(uri)
-        data = {
-            'result': {
-                'fields': [
-                    {'id': 'field1'},
-                    {'id': 'field2'},
-                ],
-                'records': []
-            }
-        }
-        start = parameters['offset']
-        limit = parameters['limit']
-        if start >= self._config['PAGE_SIZE']*2:
-            limit = limit - 1
-        for i in range(start, start + limit):
-            data['result']['records'].append({
-                'field1': 'field1-' + str(i),
-                'field2': 'field2-' + str(i)
-            })
-        data['result']['total'] = len(data['result']['records'])
-        return 200, headers, json.dumps(data)
-
     def _register_uri(self):
-        """Register the httpretty URI with fake data"""
-        s = self._config['PAGE_SIZE']
+        """
+        Register the httpretty URI with fake data
+        """
         httpretty.register_uri(
             httpretty.POST,
             'http://example.com/datastore/search',
-            body=self._ckan_response
+            responses=[
+                # just return the fields in the first response
+                httpretty.Response(json.dumps(
+                    {'result': {'fields': [{'id': 'field1'}, {'id': 'field2'}, ]}})),
+                httpretty.Response(json.dumps({
+                    'result': {
+                        'records': [{
+                            'field1': 'field1-' + str(i),
+                            'field2': 'field2-' + str(i)
+                        } for i in range(2)]
+                    }
+                })),
+                httpretty.Response(json.dumps({
+                    'result': {
+                        'records': []
+                    }
+                }))
+            ]
         )
 
     def test_required_parameters(self):
-        """Ensure api_url is required parameter"""
-        with assert_raises(BadRequestError) as context:
-            p = DatastorePackageTask({'resource_id': 'a', 'email': 'a'}, {})
+        """
+        Ensure api_url is required parameter
+        """
+        with assert_raises(BadRequestError):
+            DatastorePackageTask({'resource_id': 'a', 'email': 'a'}, {})
 
     def test_host(self):
-        """Ensure host is taken from api_url"""
+        """
+        Ensure host is taken from api_url
+        """
         assert_equals(self._task.host(), 'example.com')
 
     @httpretty.activate
     def test_api_url_invoked(self):
-        """Test the the API url is invoked"""
+        """
+        Test the the API url is invoked
+        """
         self._register_uri()
         self._task.create_zip(DummyResource())
         url = urlparse.urlparse(httpretty.last_request().path)
@@ -106,7 +116,9 @@ class TestDatastorePackageTask(object):
 
     @httpretty.activate
     def test_zip_created(self):
-        """Ensure that the resource ZIP file is created"""
+        """
+        Ensure that the resource ZIP file is created
+        """
         self._register_uri()
         r = DummyResource()
         self._task.create_zip(r)
@@ -114,28 +126,34 @@ class TestDatastorePackageTask(object):
 
     @httpretty.activate
     def test_work_folder_cleaned(self):
-        """Ensure that the work folder is cleaned"""
+        """
+        Ensure that the work folder is cleaned
+        """
         self._register_uri()
         r = DummyResource()
         self._task.create_zip(r)
-        # assert_true(r.clean_invoked)
+        assert_true(r.clean_invoked)
 
     def test_speed_is_fast_with_few_rows(self):
-        """ Ensure the speed is fast when few rows are present"""
-        t = DatastorePackageTask({
+        """
+        Ensure the speed is fast when few rows are present
+        """
+        task = DatastorePackageTask({
             'resource_id': 'the-resource-id',
             'email': 'someone@0.0.0.0',
             'api_url': 'http://example.com/datastore/search',
             'limit': 1
         }, self._config)
-        assert_equals('fast', t.speed())
+        assert_equals('fast', task.speed())
 
     def test_speed_is_slow_with_many_rows(self):
-        """ Ensure the speed is fast when many rows are present"""
-        t = DatastorePackageTask({
+        """
+        Ensure the speed is fast when many rows are present
+        """
+        task = DatastorePackageTask({
             'resource_id': 'the-resource-id',
             'email': 'someone@0.0.0.0',
             'api_url': 'http://example.com/datastore/search',
             'limit': 4
         }, self._config)
-        assert_equals('slow', t.speed())
+        assert_equals('slow', task.speed())
