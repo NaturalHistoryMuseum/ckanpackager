@@ -135,7 +135,8 @@ Parameters:
 - `offset`: Offset to start the search at (optional, default is 0);
 - `limit`: Maximum number of items to fetch (optional, default is to fetch all entries);
 - `key`: CKAN API key (optional, default if to do anonymous request)
-      
+- `doi`: A DOI for the data in the requested download, for example as produced by the [ckanext-query-dois](https://github.com/NaturalHistoryMuseum/ckanext-query-dois) extension
+
 JSON result fields:      
 - `success`: True or False;
 - `msg`: If the query failed, may contain an error message. If the query was successful, contains a message that may be displayed to the end user (such as "please be patient!");
@@ -344,6 +345,8 @@ ZIP_COMMAND = "/usr/bin/zip -j {output} {input}"
 # {resource_id}: The resource id,
 # {zip_file_name}: The file name,
 # {ckan_host}: The hostname of the CKAN server the query was made to,
+# {doi}: The DOI for this download, if there is one (if the DOI is missing, this will be blank)
+# {doi_body}: The result of formatting the DOI_BODY below with these placeholders (if the DOI is missing, will be blank)
 EMAIL_SUBJECT = "Resource from {ckan_host}"
 
 # Email FROM line. This should be an actual email address. See Email subject for placeholders.
@@ -355,8 +358,15 @@ EMAIL_BODY = """Hello,
 The link to the resource you requested on {ckan_host} is available at:
 http://{ckan_host}/{zip_file_name}
 
+{doi_body}
+
 Best Wishes,
 The Data Portal Bot
+"""
+
+# DOI body. See Email subject for placeholders.
+DOI_BODY = """A DOI has been created for this data: https://doi.org/{doi} (this may take a few hours to become active).
+Please ensure you reference this DOI when citing this data. For more information, follow the DOI link.
 """
 
 # SMTP host

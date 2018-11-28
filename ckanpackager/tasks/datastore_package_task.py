@@ -29,6 +29,7 @@ class DatastorePackageTask(PackageTask):
             'fields': (False, None, True),
             'sort': (False, None, True),
             'format': (False, None, False),
+            'doi': (False, None, False),
         }
 
     def host(self):

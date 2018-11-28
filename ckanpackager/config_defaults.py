@@ -21,9 +21,17 @@ EMAIL_BODY = """Hello,
 The link to the resource you requested on {ckan_host} is available at:
 http://{ckan_host}/{zip_file_name}
 
+{doi_body}
+
 Best Wishes,
 The Data Portal Bot
 """
+
+DOI_BODY = """A DOI has been created for this data: https://doi.org/{doi} (this may take a few hours to become active).
+Please ensure you reference this DOI when citing this data.
+For more information, follow the DOI link.
+"""
+
 DWC_ID_FIELD = '_id'
 DWC_CORE_EXTENSION = '/etc/ckanpackager/gbif_dwca_extensions/core/dwc_occurrence.xml'
 DWC_ADDITIONAL_EXTENSIONS = []
