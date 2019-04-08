@@ -119,8 +119,15 @@ class PackageTask(object):
         place_holders = {
             'resource_id': self.request_params['resource_id'],
             'zip_file_name': os.path.basename(zip_file_name),
-            'ckan_host': self.host()
+            'ckan_host': self.host(),
+            # retrieve a doi from the request params, if there is one, otherwise default to the empty string
+            'doi': self.request_params.get('doi', ''),
+            # default the doi_body to the empty string, we'll fill it in below if necessary
+            'doi_body': '',
         }
+        # if we have the DOI_BODY config option and a doi in the place holders, better load it up
+        if 'DOI_BODY' in self.config and place_holders['doi']:
+            place_holders['doi_body'] = self.config['DOI_BODY'].format(**place_holders)
         from_addr = self.config['EMAIL_FROM'].format(**place_holders)
         msg = MIMEText(self.config['EMAIL_BODY'].format(**place_holders))
         msg['Subject'] = self.config['EMAIL_SUBJECT'].format(**place_holders)

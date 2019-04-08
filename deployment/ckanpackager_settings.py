@@ -51,6 +51,8 @@ SUCCESS_MESSAGE = "The resource will be emailed to you shortly. This make take a
 # {resource_id}: The resource id,
 # {zip_file_name}: The file name,
 # {ckan_host}: The hostname of the CKAN server the query was made to,
+# {doi}: The DOI for this download, if there is one (if the DOI is missing, this will be blank)
+# {doi_body}: The result of formatting the DOI_BODY below with these placeholders (if the DOI is missing, will be blank)
 EMAIL_SUBJECT = "Resource from {ckan_host}"
 
 # Email FROM line. See Email subject for placeholders.
@@ -62,8 +64,16 @@ EMAIL_BODY = """Hello,
 The link to the resource you requested on {ckan_host} is available at:
 http://www.example.com/resources/{zip_file_name}
 
+{doi_body}
+
 Best Wishes,
 The Data Portal Bot
+"""
+
+# DOI body. See Email subject for placeholders.
+DOI_BODY = """A DOI has been created for this data: https://doi.org/{doi} (this may take a few hours to become active).
+Please ensure you reference this DOI when citing this data.
+For more information, follow the DOI link.
 """
 
 # SMTP host

@@ -1,5 +1,6 @@
 import json
 from urlparse import urlparse
+
 from ckanpackager.lib.ckan_resource import CkanResource
 from ckanpackager.lib.resource_file import ResourceFile
 from ckanpackager.tasks.package_task import PackageTask
@@ -28,6 +29,7 @@ class DatastorePackageTask(PackageTask):
             'fields': (False, None, True),
             'sort': (False, None, True),
             'format': (False, None, False),
+            'doi': (False, None, False),
         }
 
     def host(self):
@@ -54,70 +56,42 @@ class DatastorePackageTask(PackageTask):
             return 'slow'
 
     def create_zip(self, resource):
-        """Create the ZIP file matching the current request
+        """
+        Create the ZIP file matching the current request.
 
-        @return: The ZIP file name
+        :return: The ZIP file name
         """
         schema = self.schema()
         ckan_params = dict([(k, v) for (k, v) in self.request_params.items() if schema[k][2]])
-        ckan_resource = CkanResource(self.request_params['api_url'], self.request_params.get('key', None), ckan_params)
+        ckan_resource = CkanResource(self.request_params['api_url'],
+                                     self.request_params.get('key', None),
+                                     self.config['PAGE_SIZE'], ckan_params)
         try:
-            # Read the datastore fields, and generate the package structure.
             self.log.info("Fetching fields")
-            response = ckan_resource.request(0, 0)
+            # read the datastore fields and determine the backend type
+            fields, backend = ckan_resource.get_fields_and_backend()
+            
+            # write fields to out file as headers
+            fields = self._write_headers(resource, fields)
 
-            # Write fields to out file as headers
-            fields = self._write_headers(response, resource)
-
-            # If this is a SOLR backend we want to use a cursor
-            # This is much faster than the DB search - and prevents duplicates
-            cursor = None
-            try:
-                if response['result']['_backend'] == 'datasolr':
-                    cursor = '*'
-                    self.log.info("Search type: Solr cursor")
-            except KeyError:
-                self.log.info("Search type: DB")
-
-            page = 0
-            count = 0
-            max_count = int(self.request_params.get('limit', 0))
-            while True:
-                response = ckan_resource.request(page, self.config['PAGE_SIZE'], cursor)
-                # If we've run out of records, break
-                if not response['result']['records']:
-                    break
-                self._write_records(response['result']['records'], fields, resource)
-                if cursor:
-                    cursor = response['result']['next_cursor']
-                # Start offset - not used for SOLR
-                page += 1
-                count += len(response['result']['records'])
-
-                if max_count and count >= max_count:
-                    break
-
-                try:
-                    response['result']['total']
-                except KeyError:
-                    print response
-                if count >= response['result']['total']:
-                    break
-
-            # Finalize the resource
+            self.log.info("Fetching records")
+            # retrieve the records and write them as we go (ckan_resource.get_records returns a
+            # generator)
+            self._write_records(ckan_resource.get_records(backend), fields, resource)
+            # finalize the resource
             self._finalize_resource(fields, resource)
-            # Zip the file
+            # zip the file
             resource.create_zip(self.config['ZIP_COMMAND'])
         finally:
             resource.clean_work_files()
 
     @staticmethod
-    def _write_headers(response, resource):
-        # Build a list of fields
-        fields = [f['id'] for f in response['result']['fields']]
+    def _write_headers(resource, fields):
+        # build a list of field names
+        field_names = [f['id'] for f in fields]
         w = resource.get_csv_writer('resource.csv')
-        w.writerow(fields)
-        return fields
+        w.writerow(field_names)
+        return field_names
 
     @staticmethod
     def _write_records(records, fields, resource):
@@ -145,4 +119,3 @@ class DatastorePackageTask(PackageTask):
         @type resource: ResourceFile
         """
         pass
-

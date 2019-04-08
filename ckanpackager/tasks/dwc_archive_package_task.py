@@ -34,22 +34,19 @@ class DwcArchivePackageTask(DatastorePackageTask):
         schema['for_gbif'] = (False, None, False)
         return schema
 
-    def _write_headers(self, response, resource):
+    def _write_headers(self, resource, fields):
         """Stream the list of fields and save the headers in the resource.
 
         We construct the structure of the darwin core archive at the same
         time.
 
-        @param input_stream: file-like object representing the input stream
-        @param resource: A resource file
-        @type resource: ResourceFile
         @returns: List (or other structure) representing the fields saved to
                   the headers, to allow _stream_records to save rows in a
                   matching format.
         """
         # Create the structure
         archive = DwcArchiveStructure()
-        for field in response['result']['fields']:
+        for field in fields:
             if field['id'] != self.config['DWC_ID_FIELD']:
                 # A single input field can match into multiple destination
                 # term (when using json extension fields). Also multiple
@@ -228,10 +225,10 @@ class DwcArchivePackageTask(DatastorePackageTask):
                 seen.append((term_field, ext_term_field, formatter))
                 if ext_term_field:
                     try:
-                        result[term_field] = json.loads(json_row[term_field])
+                        result[term_field] = json_row[term_field]
                         if not isinstance(result[term_field], list):
                             result[term_field] = [result[term_field]]
-                    except (ValueError, KeyError, TypeError):
+                    except (ValueError, KeyError, TypeError) as e:
                         result[term_field] = []
                     for (index, value) in enumerate(result[term_field]):
                         result[term_field][index] = dict(
