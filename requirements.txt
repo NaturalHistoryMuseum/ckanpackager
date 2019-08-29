@@ -18,10 +18,7 @@ MarkupSafe==0.23
 itsdangerous==0.24
 inflection==0.2.1
 flower==0.7.3
-celery==3.1.17
-pytz==2014.10
-billiard==3.3.0.19
-kombu==3.0.24
+celery==3.1.25
 anyjson==0.3.3
 amqp==1.4.6
 tornado==4.1
