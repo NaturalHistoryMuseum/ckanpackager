@@ -13,7 +13,7 @@ redis==2.10.3
 unicodecsv==0.9.4
 Flask==0.10.1
 Werkzeug==0.9.6
-Jinja2==2.7.3
+Jinja2==2.10.1
 MarkupSafe==0.23
 itsdangerous==0.24
 inflection==0.2.1
