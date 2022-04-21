@@ -99,8 +99,11 @@ class ResourceFile():
         mapping = {
             'csv': ',',
             'tsv': '\t',
+            # if the format is xlsx then we're going to output a csv and then convert it after, so
+            # use a comma as the delimiter
+            'xlsx': ',',
         }
-        return mapping.get(self.request_params.get('format', 'csv'))
+        return mapping.get(self.format)
 
     def clean_name(self, name=None):
         """
@@ -125,8 +128,11 @@ class ResourceFile():
             mapping = {
                 'csv': '.csv',
                 'tsv': '.tsv',
+                # as with the get_delimiter function above, if we get an xlsx request we're going to
+                # output the data in csv format and then convert it later
+                'xlsx': '.csv',
             }
-            name = name[:-4] + mapping[self.request_params.get('format', 'csv')]
+            name = name[:-4] + mapping[self.format]
 
         return name
 
@@ -200,7 +206,7 @@ class ResourceFile():
         for w in self.writers:
             if not self.writers[w].closed:
                 self.writers[w].close()
-        self.writers = []
+        self.writers.clear()
         # Remove the temp working folder
         if self.working_folder and os.path.exists(self.working_folder):
             shutil.rmtree(self.working_folder, True)
