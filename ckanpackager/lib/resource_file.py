@@ -200,7 +200,7 @@ class ResourceFile():
         for w in self.writers:
             if not self.writers[w].closed:
                 self.writers[w].close()
-        self.writers = []
+        self.writers.clear()
         # Remove the temp working folder
         if self.working_folder and os.path.exists(self.working_folder):
             shutil.rmtree(self.working_folder, True)
