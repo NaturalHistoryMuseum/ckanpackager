@@ -33,6 +33,10 @@ class ResourceFile():
         self.zip_file_name = None
         self.writers = {}
 
+    @property
+    def format(self):
+        return self.request_params.get('format', 'csv')
+
     def zip_file_exists(self):
         """Check if the file already exists"""
         if self.zip_file_name:
