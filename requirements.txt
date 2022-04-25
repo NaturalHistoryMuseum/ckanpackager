@@ -27,7 +27,7 @@ backports.ssl-match-hostname==3.4.0.2
 docopt==0.6.2
 beautifulsoup4==4.2.1
 lxml==3.4.0
-urllib3==1.7.1
+urllib3==1.26.5
 raven==5.32.0
 bcrypt==3.1.4
 openpyxl==2.6.4
