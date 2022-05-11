@@ -53,6 +53,7 @@ SUCCESS_MESSAGE = "The resource will be emailed to you shortly. This make take a
 # {ckan_host}: The hostname of the CKAN server the query was made to,
 # {doi}: The DOI for this download, if there is one (if the DOI is missing, this will be blank)
 # {doi_body}: The result of formatting the DOI_BODY below with these placeholders (if the DOI is missing, will be blank)
+# {doi_body_html}: The result of formatting the DOI_BODY_HTML below with these placeholders (if the DOI is missing, will be blank)
 EMAIL_SUBJECT = "Resource from {ckan_host}"
 
 # Email FROM line. See Email subject for placeholders.
@@ -69,11 +70,29 @@ http://www.example.com/resources/{zip_file_name}
 Best Wishes,
 The Data Portal Bot
 """
-
+# Email body in html. See Email subject for placeholders.
+EMAIL_BODY_HTML = """<html lang="en">
+<body>
+<p>Hello,</p>
+<p>The link to the resource data you requested on <a href="{ckan_host}">{ckan_host}</a> is
+available at <a href="http://www.example.com/resources/{zip_file_name}">here</a>.</p>
+<br />
+{doi_body_html}
+<p>Best Wishes,</p>
+<p>The Data Portal Bot</p>
+</body>
+</html>
+"""
 # DOI body. See Email subject for placeholders.
 DOI_BODY = """A DOI has been created for this data: https://doi.org/{doi} (this may take a few hours to become active).
 Please ensure you reference this DOI when citing this data.
 For more information, follow the DOI link.
+"""
+# DOI body in html message. See Email subject for placeholders.
+DOI_BODY_HTML = """<p>A DOI has been created for this data: <a href="https://doi.org/{doi}">https://doi.org/{doi}</a> (this may take a few hours to become active).</p>
+<p>Please ensure you reference this DOI when citing this data.</p>
+<p>For more information, follow the DOI link.</p>
+<br />
 """
 
 # SMTP host

@@ -4,6 +4,7 @@ import hashlib
 import logging
 import traceback
 from datetime import datetime
+from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from ckanpackager.lib.utils import BadRequestError
 from ckanpackager.lib.resource_file import ResourceFile
@@ -124,15 +125,28 @@ class PackageTask(object):
             'doi': self.request_params.get('doi', ''),
             # default the doi_body to the empty string, we'll fill it in below if necessary
             'doi_body': '',
+            'doi_body_html': '',
         }
-        # if we have the DOI_BODY config option and a doi in the place holders, better load it up
-        if 'DOI_BODY' in self.config and place_holders['doi']:
-            place_holders['doi_body'] = self.config['DOI_BODY'].format(**place_holders)
+        if place_holders['doi']:
+            if 'DOI_BODY' in self.config:
+                place_holders['doi_body'] = self.config['DOI_BODY'].format(**place_holders)
+            if 'DOI_BODY_HTML' in self.config:
+                place_holders['doi_body_html'] = \
+                    self.config['DOI_BODY_HTML'].format(**place_holders)
+
         from_addr = self.config['EMAIL_FROM'].format(**place_holders)
-        msg = MIMEText(self.config['EMAIL_BODY'].format(**place_holders))
+
+        msg = MIMEMultipart('alternative')
+        # add the basics
         msg['Subject'] = self.config['EMAIL_SUBJECT'].format(**place_holders)
         msg['From'] = from_addr
         msg['To'] = self.request_params['email']
+        # add the body as html and text
+        text = MIMEText(self.config['EMAIL_BODY'].format(**place_holders), 'plain')
+        html = MIMEText(self.config['EMAIL_BODY_HTML'].format(**place_holders), 'html')
+        msg.attach(text)
+        msg.attach(html)
+        # send the email
         server = smtplib.SMTP(self.config['SMTP_HOST'], self.config['SMTP_PORT'])
         try:
             if 'SMTP_LOGIN' in self.config:
