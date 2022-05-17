@@ -26,10 +26,26 @@ http://{ckan_host}/{zip_file_name}
 Best Wishes,
 The Data Portal Bot
 """
-
+EMAIL_BODY_HTML = """<html lang="en">
+<body>
+<p>Hello,</p>
+<p>The link to the resource data you requested on <a href="{ckan_host}">{ckan_host}</a> is
+available at <a href="http://{ckan_host}/{zip_file_name}">here</a>.</p>
+<br />
+{doi_body_html}
+<p>Best Wishes,</p>
+<p>The Data Portal Bot</p>
+</body>
+</html>
+"""
 DOI_BODY = """A DOI has been created for this data: https://doi.org/{doi} (this may take a few hours to become active).
 Please ensure you reference this DOI when citing this data.
 For more information, follow the DOI link.
+"""
+DOI_BODY_HTML = """<p>A DOI has been created for this data: <a href="https://doi.org/{doi}">https://doi.org/{doi}</a> (this may take a few hours to become active).</p>
+<p>Please ensure you reference this DOI when citing this data.</p>
+<p>For more information, follow the DOI link.</p>
+<br />
 """
 
 DWC_ID_FIELD = '_id'
