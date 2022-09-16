@@ -4,7 +4,7 @@ requests==2.4.3
 dataset==0.5.5
 SQLAlchemy==0.9.8
 alembic==0.6.7
-Mako==1.0.0
+Mako==1.2.2
 python-slugify==0.1.0
 Unidecode==0.4.16
 PyYAML==3.11
