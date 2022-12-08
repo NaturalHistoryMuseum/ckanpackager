@@ -22,7 +22,7 @@ celery==3.1.25
 anyjson==0.3.3
 amqp==1.4.6
 tornado==4.1
-certifi==2019.3.9
+certifi==2022.12.7
 backports.ssl-match-hostname==3.4.0.2
 docopt==0.6.2
 beautifulsoup4==4.2.1
